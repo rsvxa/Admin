@@ -47,7 +47,7 @@ export default function Navbar() {
       if (currentUser) {
         setUserProfile({
           fullName: currentUser.name,
-          avatar: currentUser.image || '/unnamed.png', // បើគ្មានរូបប្រើរូប default
+          avatar: currentUser.image || '', // បើគ្មានរូបប្រើរូប default
           role: currentUser.role === 'admin' ? 'Administrator' : 'Staff Member'
         });
       }
