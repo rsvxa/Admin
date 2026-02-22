@@ -10,6 +10,7 @@ import Customers from './pages/Customers';
 import Settings from './pages/Settings';
 import Report from './pages/Report';
 import Expenses from './pages/Expenses';
+import StaffDashboard from './pages/StaffDashboard';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -34,6 +35,7 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/products" element={<Products />} />
           <Route path="/add-staff" element={<ManageStaff />} />
+          <Route path="/staffdashboard" element={<StaffDashboard />} />
           <Route path="/ordering" element={<Ordering />} />
           <Route path="/expenses" element={<Expenses />} />
           <Route path="/customers" element={<Customers />} />

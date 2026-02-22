@@ -11,7 +11,8 @@ import {
   Store,
   UserPlus,
   TrendingUp,
-  CreditCard
+  CreditCard,
+  Calendar
 } from 'lucide-react';
 import { useLocation, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -66,6 +67,12 @@ export default function Sidebar() {
       show: userRole === 'admin'
     },
     { 
+      icon: <Calendar size={20} />, 
+      label: t('menu_staff_schedule'), 
+      path: '/staffdashboard', 
+      show: true
+    },
+    { 
       icon: <Users size={20} />, 
       label: t('menu_customers'), 
       path: '/customers', 
@@ -82,11 +89,11 @@ export default function Sidebar() {
       label: t('menu_settings'), 
       path: '/settings', 
       show: userRole === 'admin'
-    }
+    },
   ];
 
   return (
-    <div className="w-72 h-screen bg-white border-r border-gray-100 flex flex-col sticky top-0 z-50">
+    <div className="w-72 h-screen bg-white flex flex-col sticky top-0 z-50">
       {/* Logo Section */}
       <div className="p-8 flex items-center gap-3">
         <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center text-white shadow-lg shadow-gray-200">
@@ -101,7 +108,6 @@ export default function Sidebar() {
       {/* Navigation Links */}
       <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto pt-4 scrollbar-hide text-left">
         <p className="px-4 text-[9px] font-black text-gray-400 uppercase tracking-[2.5px] mb-4">
-          {/* ៤. បកប្រែពាក្យ Admin Control / Staff Access */}
           {userRole === 'admin' ? t('admin_control') : t('staff_access')}
         </p>
         
@@ -143,7 +149,6 @@ export default function Sidebar() {
           className="w-full flex items-center gap-4 px-4 py-4 text-rose-400 hover:bg-rose-50 hover:text-rose-600 rounded-2xl transition-all group border border-transparent hover:border-rose-100"
         >
           <LogOut size={20} className="group-hover:-translate-x-1 transition-transform" />
-          {/* ៥. បកប្រែពាក្យ Logout */}
           <span className="font-bold text-sm uppercase tracking-widest text-left">{t('menu_logout')}</span>
         </button>
       </div>

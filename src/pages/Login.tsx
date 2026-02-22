@@ -13,13 +13,38 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (email && password) {
+
+    // ១. ទាញយកបញ្ជីបុគ្គលិកដែល Admin បានរក្សាទុក
+    const savedStaff = localStorage.getItem('zway_staff_data');
+    const staffList = savedStaff ? JSON.parse(savedStaff) : [];
+
+    // ២. ឆែកមើលថាតើ Email ដែលវាយបញ្ចូល មាននៅក្នុងបញ្ជីបុគ្គលិកដែរឬទេ
+    // យើងឆែកទាំង Email និង Role ឱ្យត្រូវគ្នា
+    const foundUser = staffList.find(
+      (user: any) => 
+        user.email.toLowerCase() === email.toLowerCase() && 
+        user.role === role
+    );
+
+    if (foundUser) {
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.setItem('userRole', role); 
+      localStorage.setItem('userEmail', email.toLowerCase()); 
+      localStorage.setItem('userName', foundUser.name);
+
       onLogin();
+      
+      if (role === 'admin') {
+        window.location.href = '/dashboard';
+      } else {
+        window.location.href = '/staffdashboard';
+      }
+    } else {
+      alert(t('error_user_not_found', 'រកមិនឃើញគណនីនេះក្នុងប្រព័ន្ធឡើយ! សូមពិនិត្យអ៊ីមែល ឬតួនាទីរបស់អ្នកឡើងវិញ។'));
     }
   };
 
+  // Variants សម្រាប់ Animation
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
@@ -35,78 +60,80 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 overflow-hidden font-sans bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center p-6 overflow-hidden font-sans bg-gray-50 italic text-left">
       <motion.div 
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="bg-white w-full max-w-md rounded-[32px] shadow-xl p-10 border border-gray-100"
+        className="bg-white w-full max-w-md rounded-[40px] shadow-2xl p-10 border border-gray-100"
       >
-        <motion.div variants={itemVariants} className="text-center mb-8">
+        <motion.div variants={itemVariants} className="text-center mb-10">
           <motion.div 
-            whileHover={{ rotate: 10, scale: 1.1 }}
-            className="w-14 h-14 bg-black rounded-2xl flex items-center justify-center text-white text-xl font-bold mx-auto mb-4 shadow-md shadow-gray-600"
+            whileHover={{ rotate: -10, scale: 1.1 }}
+            className="w-16 h-16 bg-black rounded-[24px] flex items-center justify-center text-white text-2xl font-black mx-auto mb-4 shadow-xl shadow-black/20 italic"
           >
             Z
           </motion.div>
-          <h1 className="text-2xl font-bold text-black tracking-widest ml-1">{t('login_title')}</h1>
-          <p className="text-gray-400 text-sm mt-1">{t('login_subtitle')}</p>
+          <h1 className="text-3xl font-black text-black tracking-tighter uppercase italic">{t('login_title', 'ចូលប្រើប្រាស់')}</h1>
+          <p className="text-gray-400 text-[10px] font-bold uppercase tracking-[0.2em] mt-2">{t('login_subtitle', 'គ្រប់គ្រងហាងហ្វេសិនរបស់អ្នក')}</p>
         </motion.div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* --- Role Selection --- */}
           <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4">
             <button
               type="button"
               onClick={() => setRole('staff')}
-              className={`flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all ${
+              className={`flex flex-col items-center gap-2 p-4 rounded-[24px] border-2 transition-all ${
                 role === 'staff' 
-                ? 'border-black bg-gray-50 text-black' 
-                : 'border-gray-100 bg-white text-gray-400 hover:border-gray-200'
+                ? 'border-black bg-black text-white shadow-lg' 
+                : 'border-gray-50 bg-gray-50 text-gray-400 hover:border-gray-200'
               }`}
             >
               <UserCheck size={20} />
-              <span className="text-xs font-bold uppercase tracking-wider">{t('role_staff')}</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">{t('role_staff', 'បុគ្គលិក')}</span>
             </button>
             <button
               type="button"
               onClick={() => setRole('admin')}
-              className={`flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all ${
+              className={`flex flex-col items-center gap-2 p-4 rounded-[24px] border-2 transition-all ${
                 role === 'admin' 
-                ? 'border-black bg-gray-50 text-black' 
-                : 'border-gray-100 bg-white text-gray-400 hover:border-gray-200'
+                ? 'border-black bg-black text-white shadow-lg' 
+                : 'border-gray-50 bg-gray-50 text-gray-400 hover:border-gray-200'
               }`}
             >
               <ShieldCheck size={20} />
-              <span className="text-xs font-bold uppercase tracking-wider">{t('role_admin')}</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">{t('role_admin', 'អ្នកគ្រប់គ្រង')}</span>
             </button>
           </motion.div>
 
           {/* --- Email Input --- */}
-          <motion.div variants={itemVariants} className="space-y-2 text-left">
-            <label className="text-[12px] font-bold text-black uppercase tracking-widest ml-1">{t('label_email')}</label>
+          <motion.div variants={itemVariants} className="space-y-2">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">{t('label_email', 'អ៊ីមែល')}</label>
             <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
               <input 
                 type="email" 
                 required
-                className="w-full bg-gray-100 border-none rounded-2xl py-3.5 pl-12 pr-4 text-sm focus:ring-2 focus:ring-black outline-none transition-all"
-                placeholder="name@company.com"
+                className="w-full bg-gray-50 border-none rounded-[20px] py-4 pl-14 pr-4 text-sm font-bold focus:bg-white focus:ring-4 focus:ring-black/5 outline-none transition-all italic"
+                placeholder="staff@zway.com"
+                value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
           </motion.div>
 
           {/* --- Password Input --- */}
-          <motion.div variants={itemVariants} className="space-y-2 text-left">
-            <label className="text-[12px] font-bold text-black uppercase tracking-widest ml-1">{t('label_password')}</label>
+          <motion.div variants={itemVariants} className="space-y-2">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">{t('label_password', 'លេខសម្ងាត់')}</label>
             <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
               <input 
                 type="password" 
                 required
-                className="w-full bg-gray-100 border-none rounded-2xl py-3.5 pl-12 pr-4 text-sm focus:ring-2 focus:ring-black outline-none transition-all"
+                className="w-full bg-gray-50 border-none rounded-[20px] py-4 pl-14 pr-4 text-sm font-bold focus:bg-white focus:ring-4 focus:ring-black/5 outline-none transition-all italic"
                 placeholder="••••••••"
+                value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
@@ -114,12 +141,14 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
 
           <motion.button 
             variants={itemVariants}
-            whileHover={{ scale: 1.02 }}
+            whileHover={{ y: -2 }}
             whileTap={{ scale: 0.98 }}
             type="submit"
-            className="w-full bg-black text-white py-4 rounded-2xl transition-all flex items-center justify-center gap-2 group mt-2 hover:bg-zinc-800 shadow-xl"
+            className="w-full bg-black text-white py-5 rounded-[24px] transition-all flex items-center justify-center gap-3 group mt-4 shadow-xl shadow-black/20"
           >
-            {t('btn_signin')} {role === 'admin' ? t('role_admin') : t('role_staff')}
+            <span className="text-[10px] font-black uppercase tracking-[0.3em]">
+              {t('btn_signin', 'ចូលប្រព័ន្ធ')}
+            </span>
             <LogIn size={18} className="group-hover:translate-x-1 transition-transform" />
           </motion.button>
         </form>

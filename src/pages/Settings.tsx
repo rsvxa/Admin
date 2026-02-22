@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  User, Lock, Globe, Camera, Save, ShieldCheck, Laptop, CheckCircle2, UploadCloud 
+  User, Lock, Globe, Camera, Save, ShieldCheck, Laptop, 
+  CheckCircle2, ChevronRight, Mail, Phone, Fingerprint, Sparkles
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
@@ -15,163 +16,193 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState('profile');
   const [isSaved, setIsSaved] = useState(false);
 
-  // --- State សម្រាប់ទិន្នន័យ ---
   const [profile, setProfile] = useState({
     fullName: 'Sitha THUL',
     email: 'sitha.zway@gmail.com',
     phone: '+855 12 345 678',
-    avatar: '/unnamed.png' // រូបភាពដើម
+    avatar: '/unnamed.png'
   });
 
   const [password, setPassword] = useState({ current: '', new: '', confirm: '' });
 
-  // ទាញយកទិន្នន័យពី LocalStorage
   useEffect(() => {
     const savedProfile = localStorage.getItem('zway_user_profile');
-    if (savedProfile) {
-      setProfile(JSON.parse(savedProfile));
-    }
+    if (savedProfile) setProfile(JSON.parse(savedProfile));
   }, []);
 
-  // --- មុខងារប្តូររូបភាព (Image Upload) ---
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfile({ ...profile, avatar: reader.result as string });
-      };
+      reader.onloadend = () => setProfile({ ...profile, avatar: reader.result as string });
       reader.readAsDataURL(file);
     }
   };
 
-  // --- មុខងាររក្សាទុក ---
   const handleSave = () => {
     localStorage.setItem('zway_user_profile', JSON.stringify(profile));
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 2000);
-    // បញ្ជូន Event ទៅ Navbar ដើម្បីប្តូររូបភាពតាមដែរ
     window.dispatchEvent(new Event('storage'));
   };
 
   const tabs = [
-    { id: 'profile', label: t('tab_profile'), icon: User },
-    { id: 'security', label: t('tab_security'), icon: Lock },
-    { id: 'system', label: t('tab_system'), icon: Laptop },
+    { id: 'profile', label: t('tab_profile', 'Profile'), icon: User, color: 'bg-orange-500' },
+    { id: 'security', label: t('tab_security', 'Security'), icon: Lock, color: 'bg-blue-500' },
+    { id: 'system', label: t('tab_system', 'Language'), icon: Globe, color: 'bg-indigo-500' },
   ];
 
   return (
-    <div className="flex min-h-screen bg-[#f8f9fa]">
+    <div className="flex min-h-screen bg-[#FBFBFD] text-[#1D1D1F] font-sans selection:bg-black selection:text-white">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <Navbar />
 
         <motion.main 
-          initial={{ opacity: 0, y: 10 }} 
-          animate={{ opacity: 1, y: 0 }}
-          className="p-6 md:p-10"
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 1 }}
+          className="p-8 md:p-16 max-w-7xl mx-auto w-full"
         >
-          {/* Header */}
-          <div className="mb-10 text-left flex justify-between items-end">
-            <div>
-              <h1 className="text-3xl font-black text-gray-900 uppercase italic tracking-tighter">{t('settings_title')}</h1>
-              <p className="text-gray-400 font-medium uppercase text-[10px] tracking-[2px] mt-1">{t('settings_subtitle')}</p>
+          {/* Top Hero Section */}
+          <div className="mb-16 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-zinc-400 font-bold text-[10px] uppercase tracking-[0.3em]">
+                <Sparkles size={14} className="text-amber-500" /> System Preferences
+              </div>
+              <h1 className="text-5xl font-black italic tracking-tighter uppercase leading-none">
+                {t('settings_title', 'Settings')}
+              </h1>
             </div>
-            {isSaved && (
-              <motion.div initial={{opacity:0, y:5}} animate={{opacity:1, y:0}} className="flex items-center gap-2 text-emerald-600 font-bold text-xs bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100">
-                <CheckCircle2 size={14} /> {t('msg_saved_success')}
-              </motion.div>
-            )}
+
+            <AnimatePresence>
+              {isSaved && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9 }} 
+                  animate={{ opacity: 1, scale: 1 }} 
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className="flex items-center gap-3 bg-white shadow-2xl shadow-emerald-200/50 text-emerald-600 font-black text-[10px] uppercase tracking-widest px-8 py-4 rounded-2xl border border-emerald-100 italic"
+                >
+                  <CheckCircle2 size={16} /> {t('msg_saved_success', 'Updated Successfully')}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-          <div className="flex flex-col lg:flex-row gap-8">
-            <aside className="w-full lg:w-64 space-y-2">
+          <div className="flex flex-col lg:flex-row gap-16">
+            {/* Sidebar Tabs */}
+            <aside className="w-full lg:w-72 space-y-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-300 ml-4 mb-6">Account Overview</p>
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${
-                    activeTab === tab.id ? 'bg-black text-white shadow-xl' : 'bg-white text-gray-400 border border-gray-100'
+                  className={`group w-full flex items-center justify-between px-6 py-5 rounded-[24px] transition-all duration-500 ${
+                    activeTab === tab.id 
+                    ? 'bg-black text-white shadow-[0_20px_40px_-10px_rgba(0,0,0,0.3)]' 
+                    : 'bg-transparent text-zinc-400 hover:bg-zinc-100'
                   }`}
                 >
-                  <tab.icon size={18} /> {tab.label}
+                  <div className="flex items-center gap-4">
+                    <div className={`p-2 rounded-xl transition-colors ${activeTab === tab.id ? 'bg-zinc-800' : 'bg-zinc-100 group-hover:bg-white'}`}>
+                      <tab.icon size={20} />
+                    </div>
+                    <span className="font-black text-[11px] uppercase tracking-widest italic">{tab.label}</span>
+                  </div>
+                  <ChevronRight size={14} className={`transition-transform duration-500 ${activeTab === tab.id ? 'rotate-90' : 'opacity-0'}`} />
                 </button>
               ))}
             </aside>
 
+            {/* Main Content Area */}
             <div className="flex-1">
-              <div className="bg-white rounded-[40px] border border-gray-100 shadow-sm p-8 md:p-12">
+              <div className="bg-white rounded-[48px] border border-gray-100 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.03)] p-10 md:p-16 relative overflow-hidden">
                 
+                {/* Profile Tab */}
                 {activeTab === 'profile' && (
-                  <div className="space-y-8 animate-in fade-in duration-500">
-                    {/* Profile Picture Section */}
-                    <div className="flex flex-col md:flex-row items-center gap-8 border-b border-gray-50 pb-8">
-                      <div className="relative">
-                        <div className="w-32 h-32 rounded-[40px] bg-zinc-100 overflow-hidden border-4 border-white shadow-lg">
+                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-12 relative z-10">
+                    <div className="flex flex-col md:flex-row items-center gap-10">
+                      <div className="relative group">
+                        <div className="w-40 h-40 rounded-[56px] overflow-hidden ring-8 ring-zinc-50 border-4 border-white shadow-2xl transition-transform duration-700 group-hover:scale-105">
                           <img src={profile.avatar} alt="Profile" className="w-full h-full object-cover" />
                         </div>
-                        <input 
-                          type="file" 
-                          ref={fileInputRef} 
-                          onChange={handleImageChange} 
-                          className="hidden" 
-                          accept="image/*" 
-                        />
                         <button 
                           onClick={() => fileInputRef.current?.click()}
-                          className="absolute -bottom-2 -right-2 p-3 bg-black text-white rounded-2xl shadow-xl hover:scale-110 transition-transform active:scale-95"
+                          className="absolute bottom-2 right-2 p-4 bg-black text-white rounded-[20px] shadow-2xl hover:bg-zinc-800 transition-all hover:rotate-12 active:scale-90"
                         >
-                          <Camera size={18} />
+                          <Camera size={20} />
                         </button>
+                        <input type="file" ref={fileInputRef} onChange={handleImageChange} className="hidden" accept="image/*" />
                       </div>
-                      <div className="text-center md:text-left">
-                        <h3 className="text-xl font-black text-gray-900 leading-none">{profile.fullName}</h3>
-                        <p className="text-gray-400 font-bold uppercase text-[10px] tracking-wider mt-2">{t('role_admin_access')}</p>
+                      <div className="text-center md:text-left space-y-3">
+                        <div className="px-4 py-1.5 bg-zinc-100 rounded-full text-[9px] font-black uppercase tracking-widest text-zinc-500 inline-block">Administrator</div>
+                        <h3 className="text-4xl font-black italic tracking-tighter uppercase">{profile.fullName}</h3>
+                        <p className="text-zinc-400 font-medium text-sm">Update your personal photo and public details.</p>
                       </div>
                     </div>
 
-                    {/* Inputs */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-                      <InputGroup label={t('label_full_name')} value={profile.fullName} onChange={(v) => setProfile({...profile, fullName: v})} />
-                      <InputGroup label={t('label_email')} value={profile.email} onChange={(v) => setProfile({...profile, email: v})} />
-                      <InputGroup label={t('label_phone')} value={profile.phone} onChange={(v) => setProfile({...profile, phone: v})} />
-                      <div className="flex flex-col gap-2">
-                        <label className="text-[10px] font-black uppercase text-gray-400 ml-1">{t('label_role_status')}</label>
-                        <div className="bg-zinc-50 px-5 py-4 rounded-2xl text-sm font-bold text-zinc-500 border border-zinc-100">{t('role_founder')}</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* --- Security & System Sections (រក្សាទុកដូចមុន) --- */}
-                {activeTab === 'security' && (
-                   <div className="space-y-8 animate-in fade-in duration-500 text-left">
-                     <h3 className="text-lg font-black flex items-center gap-2 uppercase"><ShieldCheck className="text-emerald-500" /> {t('security_auth_title')}</h3>
-                     <div className="space-y-6">
-                        <InputGroup label={t('label_current_password')} type="password" value={password.current} onChange={(v)=>setPassword({...password, current: v})} placeholder="••••••••" />
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <InputGroup label={t('label_new_password')} type="password" value={password.new} onChange={(v)=>setPassword({...password, new: v})} placeholder="••••••••" />
-                          <InputGroup label={t('label_confirm_password')} type="password" value={password.confirm} onChange={(v)=>setPassword({...password, confirm: v})} placeholder="••••••••" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8">
+                      <PremiumInput label={t('label_full_name', 'Full Name')} icon={<User size={16}/>} value={profile.fullName} onChange={(v) => setProfile({...profile, fullName: v})} />
+                      <PremiumInput label={t('label_email', 'Email Address')} icon={<Mail size={16}/>} value={profile.email} onChange={(v) => setProfile({...profile, email: v})} />
+                      <PremiumInput label={t('label_phone', 'Phone Number')} icon={<Phone size={16}/>} value={profile.phone} onChange={(v) => setProfile({...profile, phone: v})} />
+                      <div className="space-y-3 flex flex-col">
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 ml-1">{t('label_role_status', 'Membership')}</label>
+                        <div className="h-[62px] flex items-center px-6 bg-zinc-50 rounded-[22px] border border-zinc-100 text-xs font-black uppercase italic tracking-widest text-zinc-400">
+                          {t('role_founder', 'ZWAY Founder')}
                         </div>
-                     </div>
-                   </div>
-                )}
-
-                {activeTab === 'system' && (
-                  <div className="space-y-8 animate-in fade-in duration-500 text-left">
-                    <h3 className="text-lg font-black flex items-center gap-2 uppercase"><Globe className="text-indigo-500" /> {t('section_language')}</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <LanguageBtn active={i18n.language === 'en'} label="English" flag="🇺🇸" onClick={() => i18n.changeLanguage('en')} />
-                      <LanguageBtn active={i18n.language === 'kh'} label="ភាសាខ្មែរ" flag="🇰🇭" onClick={() => i18n.changeLanguage('kh')} />
+                      </div>
                     </div>
-                  </div>
+                  </motion.div>
                 )}
 
-                {/* Footer Buttons */}
-                <div className="mt-12 pt-8 border-t border-gray-50 flex justify-end gap-4">
-                  <button onClick={() => window.location.reload()} className="px-8 py-4 rounded-2xl text-[10px] font-black uppercase text-gray-400 hover:text-black transition-colors">{t('btn_discard')}</button>
-                  <button onClick={handleSave} className="flex items-center gap-2 bg-black text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase shadow-xl hover:-translate-y-1 transition-all">
-                    <Save size={16} /> {t('btn_save_changes')}
+                {/* Security Tab */}
+                {activeTab === 'security' && (
+                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-12">
+                    <div className="flex items-center gap-4 border-b border-zinc-50 pb-8">
+                      <div className="p-4 bg-emerald-50 text-emerald-600 rounded-[20px]">
+                        <Fingerprint size={32} />
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-black italic uppercase tracking-tight">{t('security_auth_title', 'Security')}</h3>
+                        <p className="text-zinc-400 text-sm font-medium">Protect your account with a secure password.</p>
+                      </div>
+                    </div>
+                    <div className="space-y-8">
+                      <PremiumInput label={t('label_current_password', 'Current Password')} type="password" value={password.current} onChange={(v)=>setPassword({...password, current: v})} placeholder="••••••••" />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <PremiumInput label={t('label_new_password', 'New Password')} type="password" value={password.new} onChange={(v)=>setPassword({...password, new: v})} placeholder="••••••••" />
+                        <PremiumInput label={t('label_confirm_password', 'Confirm New Password')} type="password" value={password.confirm} onChange={(v)=>setPassword({...password, confirm: v})} placeholder="••••••••" />
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Language Tab */}
+                {activeTab === 'system' && (
+                  <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-12">
+                    <div className="flex items-center gap-4 border-b border-zinc-50 pb-8">
+                      <div className="p-4 bg-indigo-50 text-indigo-600 rounded-[20px]">
+                        <Globe size={32} />
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-black italic uppercase tracking-tight">{t('section_language', 'Language')}</h3>
+                        <p className="text-zinc-400 text-sm font-medium">Select your preferred system language.</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      <PremiumLanguageBtn active={i18n.language === 'en'} label="English" flag="🇺🇸" onClick={() => i18n.changeLanguage('en')} />
+                      <PremiumLanguageBtn active={i18n.language === 'kh'} label="ភាសាខ្មែរ" flag="🇰🇭" onClick={() => i18n.changeLanguage('kh')} />
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="mt-20 pt-10 border-t border-zinc-50 flex flex-col sm:flex-row justify-end gap-6">
+                  <button onClick={() => window.location.reload()} className="px-10 py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-black transition-all italic">
+                    {t('btn_discard', 'Discard Changes')}
+                  </button>
+                  <button onClick={handleSave} className="group relative flex items-center justify-center gap-3 bg-black text-white px-12 py-5 rounded-[22px] text-[10px] font-black uppercase tracking-[0.2em] shadow-[0_20px_40px_-10px_rgba(0,0,0,0.3)] hover:-translate-y-1.5 transition-all duration-500">
+                    <Save size={18} className="group-hover:rotate-12 transition-transform" /> 
+                    {t('btn_save_changes', 'Save Configuration')}
                   </button>
                 </div>
 
@@ -184,24 +215,47 @@ export default function Settings() {
   );
 }
 
-// Components ជំនួយ
-function InputGroup({ label, value, onChange, type="text", placeholder="" }: any) {
+// Custom Premium UI Components
+function PremiumInput({ label, value, onChange, type="text", placeholder="", icon }: any) {
   return (
-    <div className="flex flex-col gap-2">
-      <label className="text-[10px] font-black uppercase text-gray-400 ml-1 tracking-widest">{label}</label>
-      <input type={type} value={value} onChange={(e)=>onChange(e.target.value)} placeholder={placeholder} className="bg-white border border-gray-100 px-5 py-4 rounded-2xl text-sm font-bold shadow-sm focus:ring-4 focus:ring-black/5 outline-none transition-all" />
+    <div className="flex flex-col gap-3 group">
+      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 ml-1 group-focus-within:text-black transition-colors">
+        {label}
+      </label>
+      <div className="relative">
+        {icon && <div className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-300 group-focus-within:text-black transition-colors">{icon}</div>}
+        <input 
+          type={type} 
+          value={value} 
+          onChange={(e)=>onChange(e.target.value)} 
+          placeholder={placeholder} 
+          className={`w-full bg-zinc-50 border border-zinc-100 ${icon ? 'pl-14' : 'px-6'} pr-6 py-5 rounded-[22px] text-sm font-black italic shadow-sm focus:bg-white focus:ring-[8px] focus:ring-black/5 focus:border-black/10 outline-none transition-all duration-500`} 
+        />
+      </div>
     </div>
   );
 }
 
-function LanguageBtn({ active, label, flag, onClick }: any) {
+function PremiumLanguageBtn({ active, label, flag, onClick }: any) {
   return (
-    <button onClick={onClick} className={`p-6 rounded-[32px] border-2 flex items-center justify-between transition-all ${active ? 'border-black bg-gray-50' : 'border-gray-100 opacity-60'}`}>
-      <div className="flex items-center gap-4">
-        <span className="text-2xl">{flag}</span>
-        <span className="font-black text-xs uppercase tracking-widest">{label}</span>
+    <button 
+      onClick={onClick} 
+      className={`relative p-8 rounded-[35px] border-2 flex items-center gap-6 transition-all duration-700 overflow-hidden group ${
+        active 
+        ? 'border-black bg-white shadow-2xl' 
+        : 'border-zinc-100 bg-zinc-50 opacity-60 hover:opacity-100 hover:border-zinc-300'
+      }`}
+    >
+      <div className={`text-4xl transition-transform duration-700 ${active ? 'scale-110' : 'group-hover:scale-110'}`}>{flag}</div>
+      <div className="text-left">
+        <span className={`block font-black text-[11px] uppercase tracking-[0.2em] italic ${active ? 'text-black' : 'text-zinc-500'}`}>{label}</span>
+        {active && <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest mt-1">Selected</span>}
       </div>
-      {active && <ShieldCheck size={16} className="text-black" />}
+      {active && (
+        <div className="absolute right-6 top-1/2 -translate-y-1/2 w-8 h-8 bg-black text-white rounded-full flex items-center justify-center shadow-lg">
+          <ShieldCheck size={16} />
+        </div>
+      )}
     </button>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Menu, X, CheckCheck, Info, Globe, Check } from 'lucide-react'; // បន្ថែម Globe និង Check
+import { Bell, Menu, X, CheckCheck, Info, Globe, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -9,16 +9,18 @@ export default function Navbar() {
   const { t, i18n } = useTranslation();
   
   // State សម្រាប់ Profile
-  const [userProfile, setUserProfile] = useState({ fullName: 'Sitha THUL', avatar: '/unnamed.png', role: 'Admin' });
+  const [userProfile, setUserProfile] = useState({ 
+    fullName: 'Loading...', 
+    avatar: '', 
+    role: '' 
+  });
   
-  // State សម្រាប់ Dropdowns
   const [showNotif, setShowNotif] = useState(false);
   const [showLang, setShowLang] = useState(false);
   
   const notifRef = useRef<HTMLDivElement>(null);
   const langRef = useRef<HTMLDivElement>(null);
 
-  // ទិន្នន័យ Notification
   const [notifications, setNotifications] = useState([
     { id: 1, title: 'ការលក់ថ្មី', message: 'អ្នកទើបតែទទួលបានការកុម្ម៉ង់ $45.00', time: '2 នាទីមុន', read: false },
     { id: 2, title: 'ស្តុកទំនិញ', message: 'អាវយឺត ZWAY Classic ជិតអស់ពីស្តុកហើយ', time: '1 ម៉ោងមុន', read: false },
@@ -26,32 +28,45 @@ export default function Navbar() {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  // មុខងារប្តូរភាសា
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
     setShowLang(false);
     localStorage.setItem('i18nextLng', lng);
   };
 
-  // មុខងារទាញយកទិន្នន័យ Profile និង Role
+  // --- មុខងារទាញយកទិន្នន័យ Profile ពិតប្រាកដពីបញ្ជីបុគ្គលិក ---
   const loadProfile = () => {
-    const saved = localStorage.getItem('zway_user_profile');
-    const role = localStorage.getItem('userRole');
-    if (saved) {
-      const data = JSON.parse(saved);
+    const loginEmail = localStorage.getItem('userEmail');
+    const savedStaff = localStorage.getItem('zway_staff_data');
+    
+    if (loginEmail && savedStaff) {
+      const staffList = JSON.parse(savedStaff);
+      // ស្វែងរកទិន្នន័យបុគ្គលិកដែលមាន Email ដូចអ្នក Login
+      const currentUser = staffList.find((s: any) => s.email.toLowerCase() === loginEmail.toLowerCase());
+      
+      if (currentUser) {
+        setUserProfile({
+          fullName: currentUser.name,
+          avatar: currentUser.image || '/unnamed.png', // បើគ្មានរូបប្រើរូប default
+          role: currentUser.role === 'admin' ? 'Administrator' : 'Staff Member'
+        });
+      }
+    } else {
+      // ករណីរកមិនឃើញ (Default)
       setUserProfile({
-        fullName: data.fullName || 'Sitha THUL',
-        avatar: data.avatar || '/unnamed.png',
-        role: role || 'Admin'
+        fullName: 'ZWAY User',
+        avatar: '/unnamed.png',
+        role: localStorage.getItem('userRole') || 'Guest'
       });
     }
   };
 
   useEffect(() => {
     loadProfile();
+    
+    // ចាប់យកការផ្លាស់ប្តូរទិន្នន័យ (ក្រែងលោ Admin កែឈ្មោះខ្លួនឯងក្នុងទំព័រ ManageStaff)
     window.addEventListener('storage', loadProfile);
     
-    // ចុចខាងក្រៅដើម្បីបិទ Dropdowns
     const handleClickOutside = (event: MouseEvent) => {
       if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
         setShowNotif(false);
@@ -73,7 +88,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="h-20 bg-white/80 backdrop-blur-md border-b border-gray-100 px-8 flex items-center justify-between sticky top-0 z-40">
+    <nav className="h-20 bg-white/80 backdrop-blur-md border-b border-gray-100 px-8 flex items-center justify-between sticky top-0 z-40 italic">
       
       <div className="flex-1"></div>
 
@@ -86,7 +101,7 @@ export default function Navbar() {
             className={`flex items-center gap-2 p-2.5 rounded-xl transition-all border ${showLang ? 'bg-black text-white border-black' : 'bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-100'}`}
           >
             <Globe size={18} />
-            <span className="text-[10px] font-black uppercase tracking-widest">
+            <span className="text-[11px] font-black uppercase tracking-widest">
               {i18n.language === 'kh' ? 'KH' : 'EN'}
             </span>
           </button>
@@ -97,12 +112,12 @@ export default function Navbar() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
-                className="absolute right-0 mt-2 w-36 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50"
+                className="absolute right-0 mt-2 w-40 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 p-1"
               >
-                <button onClick={() => changeLanguage('en')} className={`w-full flex items-center justify-between px-4 py-3 text-[10px] font-black uppercase transition-colors ${i18n.language === 'en' ? 'bg-black text-white' : 'hover:bg-gray-50 text-gray-600'}`}>
+                <button onClick={() => changeLanguage('en')} className={`w-full flex items-center justify-between px-4 py-3 text-[10px] font-black uppercase rounded-xl transition-colors ${i18n.language === 'en' ? 'bg-black text-white' : 'hover:bg-gray-50 text-gray-600'}`}>
                   English {i18n.language === 'en' && <Check size={12} />}
                 </button>
-                <button onClick={() => changeLanguage('kh')} className={`w-full flex items-center justify-between px-4 py-3 text-[10px] font-black uppercase transition-colors ${i18n.language === 'kh' ? 'bg-black text-white' : 'hover:bg-gray-50 text-gray-600'}`}>
+                <button onClick={() => changeLanguage('kh')} className={`w-full flex items-center justify-between px-4 py-3 text-[10px] font-black uppercase rounded-xl transition-colors ${i18n.language === 'kh' ? 'bg-black text-white' : 'hover:bg-gray-50 text-gray-600'}`}>
                   ភាសាខ្មែរ {i18n.language === 'kh' && <Check size={12} />}
                 </button>
               </motion.div>
@@ -118,7 +133,7 @@ export default function Navbar() {
           >
             <Bell size={20} />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white animate-bounce">
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white">
                 {unreadCount}
               </span>
             )}
@@ -130,31 +145,31 @@ export default function Navbar() {
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="absolute right-0 mt-3 w-80 bg-white rounded-[24px] shadow-2xl border border-gray-100 overflow-hidden z-50"
+                className="absolute right-0 mt-3 w-80 bg-white rounded-[30px] shadow-2xl border border-gray-100 overflow-hidden z-50"
               >
-                <div className="p-4 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
-                  <h3 className="text-xs font-black uppercase tracking-widest text-gray-900">Notifications</h3>
-                  <button onClick={markAllAsRead} className="text-[10px] font-bold text-indigo-500 hover:underline flex items-center gap-1">
-                    <CheckCheck size={12} /> Mark all read
+                <div className="p-5 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-900 italic">Notifications</h3>
+                  <button onClick={markAllAsRead} className="text-[9px] font-black text-rose-500 uppercase hover:underline flex items-center gap-1">
+                    <CheckCheck size={12} /> {t('mark_all_read', 'អានទាំងអស់')}
                   </button>
                 </div>
 
-                <div className="max-h-[350px] overflow-y-auto">
+                <div className="max-h-[350px] overflow-y-auto p-2">
                   {notifications.length > 0 ? (
                     notifications.map((n) => (
-                      <div key={n.id} className={`p-4 border-b border-gray-50 flex gap-3 hover:bg-gray-50 transition-colors cursor-pointer ${!n.read ? 'bg-indigo-50/30' : ''}`}>
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${!n.read ? 'bg-indigo-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                      <div key={n.id} className={`p-4 mb-1 rounded-2xl flex gap-3 transition-colors cursor-pointer ${!n.read ? 'bg-gray-50' : 'opacity-60'}`}>
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${!n.read ? 'bg-black text-white' : 'bg-gray-100 text-gray-400'}`}>
                           <Info size={16} />
                         </div>
                         <div className="text-left">
-                          <p className="text-xs font-black text-gray-900 uppercase tracking-tighter">{n.title}</p>
-                          <p className="text-[11px] text-gray-500 leading-tight mt-0.5">{n.message}</p>
-                          <p className="text-[9px] font-bold text-gray-400 mt-1">{n.time}</p>
+                          <p className="text-[10px] font-black text-gray-900 uppercase tracking-tighter italic">{n.title}</p>
+                          <p className="text-[11px] text-gray-500 leading-tight mt-1 font-bold">{n.message}</p>
+                          <p className="text-[8px] font-black text-gray-300 uppercase mt-2 tracking-widest">{n.time}</p>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <div className="p-10 text-center text-gray-400 italic text-xs">No new notifications</div>
+                    <div className="p-10 text-center text-gray-300 font-black uppercase text-[10px]">No new alerts</div>
                   )}
                 </div>
               </motion.div>
@@ -164,14 +179,24 @@ export default function Navbar() {
 
         <div className="h-8 w-[1px] bg-gray-100 mx-2"></div>
 
-        {/* User Profile */}
+        {/* --- User Profile Section --- */}
         <div className="flex items-center gap-4">
-          <div className="text-right hidden sm:block text-left">
-            <p className="text-xs font-black text-gray-900 uppercase tracking-tighter leading-none">{userProfile.fullName}</p>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">{userProfile.role}</p>
+          <div className="text-right hidden sm:block">
+            <p className="text-[12px] font-black text-gray-900 uppercase tracking-tighter leading-none italic">
+              {userProfile.fullName}
+            </p>
+            <p className="text-[8px] font-black text-rose-500 uppercase tracking-[0.2em] mt-1.5">
+              {userProfile.role}
+            </p>
           </div>
-          <div className="w-11 h-11 rounded-2xl bg-zinc-100 border-2 border-white shadow-sm overflow-hidden ring-1 ring-gray-100">
-            <img src={userProfile.avatar} alt="Avatar" className="w-full h-full object-cover" />
+          <div className="w-12 h-12 rounded-[18px] bg-zinc-100 border-2 border-white shadow-lg overflow-hidden ring-1 ring-gray-100">
+            {userProfile.avatar ? (
+              <img src={userProfile.avatar} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-400 font-black italic uppercase">
+                {userProfile.fullName.charAt(0)}
+              </div>
+            )}
           </div>
         </div>
 
