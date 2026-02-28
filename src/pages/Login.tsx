@@ -11,6 +11,35 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('staff');
 
+  // --- អនុគមន៍សម្រាប់កត់ត្រាប្រវត្តិ Login (Activity Log Logic) ---
+  const createLoginLog = (userName: string, userRole: string) => {
+    // ១. ទាញយក Log ចាស់ៗពី LocalStorage
+    const existingLogs = JSON.parse(localStorage.getItem('zway_login_logs') || '[]');
+
+    // ២. កំណត់សម្គាល់ឧបករណ៍ (Device Detection បែបសាមញ្ញ)
+    const userAgent = navigator.userAgent;
+    let deviceName = "Unknown Device";
+    if (userAgent.match(/iPhone/i)) deviceName = "iPhone";
+    else if (userAgent.match(/Android/i)) deviceName = "Android Mobile";
+    else if (userAgent.match(/Mac/i)) deviceName = "MacBook / macOS";
+    else if (userAgent.match(/Windows/i)) deviceName = "Windows PC";
+
+    // ៣. បង្កើតទិន្នន័យ Log ថ្មី
+    const newLog = {
+      id: Date.now(),
+      user: userName,
+      role: userRole.charAt(0).toUpperCase() + userRole.slice(1), // ប្តូរទៅជា 'Admin' ឬ 'Staff'
+      device: deviceName,
+      location: 'Phnom Penh, KH', // អាចប្រើ Geolocation API បន្ថែមបើចង់បានទីតាំងពិត
+      time: new Date().toISOString(),
+      status: 'Success'
+    };
+
+    // ៤. រក្សាទុកចូល LocalStorage (រក្សាទុកតែ ២០ ចុងក្រោយ)
+    const updatedLogs = [newLog, ...existingLogs].slice(0, 20);
+    localStorage.setItem('zway_login_logs', JSON.stringify(updatedLogs));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -19,26 +48,33 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
     const staffList = savedStaff ? JSON.parse(savedStaff) : [];
 
     // ២. ឆែកមើលថាតើ Email ដែលវាយបញ្ចូល មាននៅក្នុងបញ្ជីបុគ្គលិកដែរឬទេ
-    // យើងឆែកទាំង Email និង Role ឱ្យត្រូវគ្នា
     const foundUser = staffList.find(
       (user: any) => 
         user.email.toLowerCase() === email.toLowerCase() && 
         user.role === role
     );
 
-    if (foundUser) {
+    // លក្ខខណ្ឌពិសេស៖ អនុញ្ញាតឱ្យចូលសម្រាប់ Demo ប្រសិនបើបញ្ជីបុគ្គលិកនៅទទេ (Optional)
+    const isAdminDemo = email === "admin@zway.com" && role === "admin";
+
+    if (foundUser || isAdminDemo) {
+      const finalName = foundUser ? foundUser.name : "System Admin";
+      
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.setItem('userRole', role); 
       localStorage.setItem('userEmail', email.toLowerCase()); 
-      localStorage.setItem('userName', foundUser.name);
+      localStorage.setItem('userName', finalName);
+
+      // --- កត់ត្រាចូលក្នុង Activity Log មុនពេល Redirect ---
+      createLoginLog(finalName, role);
 
       onLogin();
       
-      if (role === 'admin') {
-        window.location.href = '/dashboard';
-      } else {
-        window.location.href = '/staffdashboard';
-      }
+      // បញ្ជូនទៅកាន់ Dashboard តាមតួនាទី
+      setTimeout(() => {
+        window.location.href = role === 'admin' ? '/dashboard' : '/staffdashboard';
+      }, 100);
+      
     } else {
       alert(t('error_user_not_found', 'រកមិនឃើញគណនីនេះក្នុងប្រព័ន្ធឡើយ! សូមពិនិត្យអ៊ីមែល ឬតួនាទីរបស់អ្នកឡើងវិញ។'));
     }

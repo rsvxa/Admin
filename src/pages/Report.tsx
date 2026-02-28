@@ -162,7 +162,7 @@ export default function Report() {
             <StatCard icon={<ShoppingBag size={20}/>} label={t('restock_expense', 'ថ្លៃដើមទំនិញ')} value={`$${stats.restockExpense.toLocaleString()}`} color="bg-blue-50 text-blue-600 border-blue-100" />
             <StatCard icon={<Users size={20}/>} label={t('staff_salary', 'ប្រាក់ខែបុគ្គលិក')} value={`$${stats.staffSalary.toLocaleString()}`} color="bg-purple-50 text-purple-600 border-purple-100" />
             <StatCard icon={<HeartCrack size={20}/>} label={t('damaged_goods', 'ទំនិញខូចខាត')} value={`$${stats.damagedValue.toLocaleString()}`} color="bg-rose-50 text-rose-600 border-rose-100" />
-            <StatCard icon={<TrendingUp size={20}/>} label={t('total_revenue', 'ចំណូលលក់សរុប')} value={`$${stats.totalRevenue.toLocaleString()}`} color="bg-zinc-900 text-white border-zinc-800" />
+            <StatCard icon={<TrendingUp size={20}/>} label={t('total_revenue', 'ចំណូលលក់សរុប')} value={`$${stats.totalRevenue.toLocaleString()}`} color="bg-zinc-50 text-black border-zinc-800" />
             <StatCard icon={<AlertTriangle size={20}/>} label={t('low_stock', 'ទំនិញជិតអស់')} value={stats.lowStockCount} color="bg-orange-50 text-orange-600 border-orange-100" />
           </div>
 

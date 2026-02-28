@@ -1,6 +1,8 @@
+"use client";
+
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Package, Plus, Trash2, Pencil, Search } from 'lucide-react';
+import { Package, Plus, Trash2, Pencil, Search, DollarSign } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
 import AddProductModal from '../components/AddProductModal';
@@ -13,25 +15,17 @@ export default function Products() {
   
   const categories = ['All', 'Clothes', 'Jewelry', 'Shoes', 'Hats', 'Bags'];
   
+  // ប្រើ key 'zway_products' ឱ្យដូច Dashboard ដើម្បីឱ្យវាទាញទិន្នន័យគ្នាបាន
   const [products, setProducts] = useState(() => {
-    const savedData = localStorage.getItem('my_inventory_data');
+    const savedData = localStorage.getItem('zway_products');
     if (savedData) return JSON.parse(savedData);
-    
-    return [
-      {
-        id: 1,
-        name: "Nike Jordan 1 High",
-        category: "Shoes",
-        price: 1199,
-        stocks: 15,
-        publishDate: "05 Feb 2026",
-        image: "https://i.pinimg.com/1200x/cc/df/79/ccdf79d72c01826b3e23db5f1c75a396.jpg"
-      },
-    ];
+    return [];
   });
 
   useEffect(() => {
-    localStorage.setItem('my_inventory_data', JSON.stringify(products));
+    localStorage.setItem('zway_products', JSON.stringify(products));
+    // បាញ់ Event ដើម្បីឱ្យ Dashboard ដឹងថាមានការផ្លាស់ប្តូរទិន្នន័យ
+    window.dispatchEvent(new Event('storage'));
   }, [products]);
 
   const handleDelete = (id: number) => {
@@ -55,7 +49,15 @@ export default function Products() {
     if (editingProduct) {
       setProducts(products.map((p: any) => 
         p.id === editingProduct.id 
-          ? { ...productData, id: p.id, publishDate: p.publishDate } 
+          ? { 
+              ...productData, 
+              id: p.id, 
+              publishDate: p.publishDate,
+              // បញ្ជាក់តម្លៃលេខឱ្យច្បាស់សម្រាប់ Dashboard
+              cost: Number(productData.cost) || 0,
+              price: Number(productData.price) || 0,
+              stocks: Number(productData.stocks) || 0
+            } 
           : p
       ));
     } else {
@@ -63,8 +65,9 @@ export default function Products() {
         ...productData,
         id: Date.now(),
         publishDate: getCurrentDate(),
-        stocks: Number(productData.stocks) || 0,
+        cost: Number(productData.cost) || 0,
         price: Number(productData.price) || 0,
+        stocks: Number(productData.stocks) || 0,
       };
       setProducts((prev: any) => [newProduct, ...prev]);
     }
@@ -79,7 +82,7 @@ export default function Products() {
   });
 
   return (
-    <div className="flex min-h-screen bg-[#f8f9fa] text-gray-800">
+    <div className="flex min-h-screen bg-[#f8f9fa] text-gray-800 font-medium italic">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <Navbar />
@@ -87,122 +90,103 @@ export default function Products() {
         <AnimatePresence mode="wait">
           <motion.main 
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            className="p-6 md:p-10"
+            className="p-6 md:p-10 text-left"
           >
-            {/* Header Section */}
+            {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
               <div>
-                <h1 className="text-2xl font-black text-gray-900 uppercase italic tracking-tight">Product Inventory</h1>
-                <p className="text-gray-400 text-sm font-medium">Manage and monitor your store stock</p>
+                <h1 className="text-3xl font-black text-gray-900 uppercase italic tracking-tighter leading-none">Inventory</h1>
+                <p className="text-gray-400 text-[10px] font-bold uppercase tracking-[0.2em] mt-2 italic">Manage stock & profit margins</p>
               </div>
 
               <div className="flex items-center gap-4 w-full md:w-auto">
                 <div className="relative flex-1 md:w-64">
-                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
                    <input 
                     type="text" 
-                    placeholder="Search products..."
-                    className="w-full bg-gray-100 border border-gray-400 rounded-xl py-3 pl-12 pr-4 text-sm outline-none focus:ring-2 focus:bg-gray-200 focus:ring-gray-500/10 transition-all"
+                    placeholder="Search stock..."
+                    className="w-full bg-white border border-gray-100 rounded-2xl py-3 pl-12 pr-4 text-sm font-bold outline-none focus:ring-4 focus:ring-black/5 transition-all shadow-sm"
                     onChange={(e) => setSearchQuery(e.target.value)}
                    />
                 </div>
                 <button 
                   onClick={() => { setEditingProduct(null); setIsModalOpen(true); }}
-                  className="bg-gray-100 hover:bg-black border border-gray-300 text-black hover:text-white px-6 py-3 rounded-xl flex items-center gap-2 font-bold transition-all shadow-lg shadow-gray-500/20 whitespace-nowrap"
+                  className="bg-black text-white px-6 py-3 rounded-2xl flex items-center gap-2 text-[10px] font-black uppercase hover:bg-zinc-800 transition-all shadow-xl whitespace-nowrap"
                 >
-                  <Plus size={25} /> Add Product
+                  <Plus size={18} /> Add Product
                 </button>
               </div>
             </div>
 
-            {/* Category Filter - White Style */}
-            <div className="flex justify-center mb-10">
-              <div className="bg-white border border-gray-100 p-1.5 rounded-full shadow-sm flex items-center gap-1 relative">
-                {categories.map((cat) => {
-                  const isActive = selectedCategory === cat;
-                  return (
-                    <button
-                      key={cat}
-                      onClick={() => setSelectedCategory(cat)}
-                      className={`relative px-8 py-2.5 rounded-full text-[11px] font-black uppercase tracking-[1px] transition-colors duration-300 z-10 ${
-                        isActive ? 'text-white' : 'text-gray-400 hover:text-gray-600'
-                      }`}
-                    >
-                      {cat}
-                      {isActive && (
-                        <motion.div
-                          layoutId="activePill"
-                          className="absolute inset-0 bg-black rounded-full -z-10"
-                          transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                        />
-                      )}
-                    </button>
-                  );
-                })}
+            {/* Categories */}
+            <div className="flex overflow-x-auto pb-4 mb-10 no-scrollbar justify-center">
+              <div className="bg-white p-1.5 rounded-[22px] border border-gray-100 shadow-sm flex items-center gap-1">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-8 py-2.5 rounded-[18px] text-[10px] font-black uppercase tracking-widest transition-all ${
+                      selectedCategory === cat ? 'bg-black text-white shadow-lg' : 'text-gray-400 hover:text-black'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Table Section - Light Style */}
-            <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden">
+            {/* Table */}
+            <div className="bg-white rounded-[40px] shadow-sm border border-gray-100 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead className="bg-gray-50/50 border-b border-gray-100">
                     <tr>
-                      <th className="px-8 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-[2px]">Product</th>
-                      <th className="px-6 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-[2px]">Category</th>
-                      <th className="px-6 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-[2px]">Price</th>
-                      <th className="px-6 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-[2px]">Stock</th>
-                      <th className="px-6 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-[2px]">Published</th>
-                      <th className="px-8 py-5 text-[10px] font-bold text-gray-400 uppercase tracking-[2px] text-right">Action</th>
+                      <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Product</th>
+                      <th className="px-6 py-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Cost</th>
+                      <th className="px-6 py-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Price</th>
+                      <th className="px-6 py-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Margin</th>
+                      <th className="px-6 py-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Stock</th>
+                      <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
-                    {filteredProducts.map((p: any) => (
-                      <motion.tr key={p.id} layout className="group hover:bg-gray-50/50 transition-all">
-                        <td className="px-8 py-5">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-2xl overflow-hidden bg-gray-100 border border-gray-100 flex-shrink-0 shadow-sm">
-                              {p.image ? (
-                                <img src={p.image} alt="" className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-gray-300"><Package size={20} /></div>
-                              )}
+                    {filteredProducts.map((p: any) => {
+                      const margin = p.price - (p.cost || 0);
+                      return (
+                        <motion.tr key={p.id} layout className="group hover:bg-zinc-50/50 transition-all">
+                          <td className="px-8 py-6">
+                            <div className="flex items-center gap-4">
+                              <div className="w-12 h-12 rounded-2xl overflow-hidden bg-gray-100 border border-gray-100 shadow-sm flex-shrink-0">
+                                {p.image ? <img src={p.image} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-300"><Package size={20} /></div>}
+                              </div>
+                              <div>
+                                <p className="font-black text-gray-900 text-sm italic uppercase tracking-tighter">{p.name}</p>
+                                <p className="text-[9px] font-bold text-gray-400 uppercase">{p.category}</p>
+                              </div>
                             </div>
-                            <span className="font-bold text-gray-800 text-sm">{p.name}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-5">
-                          <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-lg text-[10px] font-bold uppercase tracking-wider">
-                            {p.category}
-                          </span>
-                        </td>
-                        <td className="px-6 py-5 font-black text-gray-800 text-base">${p.price}</td>
-                        <td className="px-6 py-5">
-                          <div className="flex flex-col">
-                            <span className={`text-sm font-bold ${Number(p.stocks) < 5 ? 'text-red-500' : 'text-[#10b981]'}`}>
-                              {p.stocks} pcs
+                          </td>
+                          <td className="px-6 py-6 font-bold text-rose-500 text-sm">${p.cost || 0}</td>
+                          <td className="px-6 py-6 font-black text-gray-900 text-base italic">${p.price}</td>
+                          <td className="px-6 py-6 italic font-black text-[11px]">
+                            <span className="text-emerald-500 bg-emerald-50 px-3 py-1 rounded-full">+${margin.toFixed(2)}</span>
+                          </td>
+                          <td className="px-6 py-6">
+                            <span className={`text-[11px] font-black uppercase italic ${Number(p.stocks) < 5 ? 'text-rose-500' : 'text-gray-900'}`}>
+                              {p.stocks} units
                             </span>
-                            <div className="w-16 h-1.5 bg-gray-100 rounded-full mt-2 overflow-hidden">
-                              <div 
-                                className={`h-full ${Number(p.stocks) < 5 ? 'bg-red-400' : 'bg-[#10b981]'}`} 
-                                style={{ width: `${Math.min((Number(p.stocks) / 20) * 100, 100)}%` }} 
-                              />
+                            <div className="w-12 h-1 bg-gray-100 rounded-full mt-2 overflow-hidden">
+                              <div className={`h-full ${Number(p.stocks) < 5 ? 'bg-rose-500' : 'bg-black'}`} style={{ width: `${Math.min((Number(p.stocks) / 20) * 100, 100)}%` }} />
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-5 text-[13px] text-gray-400 font-medium">{p.publishDate}</td>
-                        <td className="px-8 py-5 text-right">
-                          <div className="flex justify-end gap-2">
-                              <button onClick={() => handleEdit(p)} className="p-2.5 text-gray-400 hover:text-black hover:bg-gray-200 rounded-xl transition-all">
-                                <Pencil size={18} />
-                              </button>
-                              <button onClick={() => handleDelete(p.id)} className="p-2.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all">
-                                <Trash2 size={18} />
-                              </button>
-                          </div>
-                        </td>
-                      </motion.tr>
-                    ))}
+                          </td>
+                          <td className="px-8 py-6 text-right">
+                            <div className="flex justify-end gap-1">
+                              <button onClick={() => handleEdit(p)} className="p-3 text-gray-400 hover:text-black hover:bg-gray-100 rounded-2xl transition-all"><Pencil size={16} /></button>
+                              <button onClick={() => handleDelete(p.id)} className="p-3 text-rose-300 hover:text-rose-600 hover:bg-rose-50 rounded-2xl transition-all"><Trash2 size={16} /></button>
+                            </div>
+                          </td>
+                        </motion.tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

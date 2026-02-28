@@ -130,7 +130,7 @@ export default function ManageStaff() {
   );
 
   return (
-    <div className="flex min-h-screen bg-[#FBFBFD] text-[#1D1D1F] font-sans selection:bg-black selection:text-white">
+    <div className="flex min-h-screen bg-[#FBFBFD] text-[#1D1D1F] font-sans italic selection:bg-black selection:text-white">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <Navbar />

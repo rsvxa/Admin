@@ -1,14 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Menu, X, CheckCheck, Info, Globe, Check } from 'lucide-react';
+import { Bell, Menu, CheckCheck, Info, Globe, Check, Package, ShoppingBag } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Navbar() {
   const { t, i18n } = useTranslation();
   
-  // State សម្រាប់ Profile
   const [userProfile, setUserProfile] = useState({ 
     fullName: 'Loading...', 
     avatar: '', 
@@ -17,45 +16,67 @@ export default function Navbar() {
   
   const [showNotif, setShowNotif] = useState(false);
   const [showLang, setShowLang] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
   
   const notifRef = useRef<HTMLDivElement>(null);
   const langRef = useRef<HTMLDivElement>(null);
 
-  const [notifications, setNotifications] = useState([
-    { id: 1, title: 'ការលក់ថ្មី', message: 'អ្នកទើបតែទទួលបានការកុម្ម៉ង់ $45.00', time: '2 នាទីមុន', read: false },
-    { id: 2, title: 'ស្តុកទំនិញ', message: 'អាវយឺត ZWAY Classic ជិតអស់ពីស្តុកហើយ', time: '1 ម៉ោងមុន', read: false },
-  ]);
+  // --- ១. មុខងារបង្កើត Notifications ពី Orders & Products ---
+  const generateNotifications = () => {
+    const orders = JSON.parse(localStorage.getItem('zway_orders') || '[]');
+    const products = JSON.parse(localStorage.getItem('zway_products') || '[]');
+    const allNotifications: any[] = [];
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+    // ទាញយក Order ដែលថ្មីៗ (Pending)
+    const pendingOrders = orders
+      .filter((o: any) => o.status === 'Pending')
+      .slice(0, 3)
+      .map((o: any) => ({
+        id: `order-${o.id}`,
+        type: 'order',
+        title: t('new_order_alert', 'ការកុម្ម៉ង់ថ្មី'),
+        message: `${o.customerName} បានកុម្ម៉ង់អស់ $${Number(o.total).toLocaleString()}`,
+        time: 'Just now',
+        read: false,
+        icon: <ShoppingBag size={16} />
+      }));
 
-  const changeLanguage = (lng: string) => {
-    i18n.changeLanguage(lng);
-    setShowLang(false);
-    localStorage.setItem('i18nextLng', lng);
+    // ទាញយកទំនិញដែលជិតអស់ពីស្តុក (Stock <= 5)
+    const lowStockItems = products
+      .filter((p: any) => (parseInt(p.stock || p.stocks || 0)) <= 5)
+      .slice(0, 3)
+      .map((p: any) => ({
+        id: `stock-${p.id}`,
+        type: 'stock',
+        title: t('low_stock_alert', 'ទំនិញជិតអស់ពីស្តុក'),
+        message: `${p.name} នៅសល់តែ ${p.stock || p.stocks} គ្រាប់ទៀតប៉ុណ្ណោះ`,
+        time: 'System Update',
+        read: false,
+        icon: <Package size={16} />
+      }));
+
+    setNotifications([...pendingOrders, ...lowStockItems]);
   };
 
-  // --- មុខងារទាញយកទិន្នន័យ Profile ពិតប្រាកដពីបញ្ជីបុគ្គលិក ---
   const loadProfile = () => {
     const loginEmail = localStorage.getItem('userEmail');
     const savedStaff = localStorage.getItem('zway_staff_data');
     
     if (loginEmail && savedStaff) {
       const staffList = JSON.parse(savedStaff);
-      // ស្វែងរកទិន្នន័យបុគ្គលិកដែលមាន Email ដូចអ្នក Login
       const currentUser = staffList.find((s: any) => s.email.toLowerCase() === loginEmail.toLowerCase());
       
       if (currentUser) {
         setUserProfile({
           fullName: currentUser.name,
-          avatar: currentUser.image || '', // បើគ្មានរូបប្រើរូប default
+          avatar: currentUser.image || '',
           role: currentUser.role === 'admin' ? 'Administrator' : 'Staff Member'
         });
       }
     } else {
-      // ករណីរកមិនឃើញ (Default)
       setUserProfile({
         fullName: 'ZWAY User',
-        avatar: '/unnamed.png',
+        avatar: '',
         role: localStorage.getItem('userRole') || 'Guest'
       });
     }
@@ -63,38 +84,45 @@ export default function Navbar() {
 
   useEffect(() => {
     loadProfile();
+    generateNotifications();
     
-    // ចាប់យកការផ្លាស់ប្តូរទិន្នន័យ (ក្រែងលោ Admin កែឈ្មោះខ្លួនឯងក្នុងទំព័រ ManageStaff)
-    window.addEventListener('storage', loadProfile);
-    
+    const handleSync = () => {
+      loadProfile();
+      generateNotifications();
+    };
+
+    window.addEventListener('storage', handleSync);
     const handleClickOutside = (event: MouseEvent) => {
-      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
-        setShowNotif(false);
-      }
-      if (langRef.current && !langRef.current.contains(event.target as Node)) {
-        setShowLang(false);
-      }
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) setShowNotif(false);
+      if (langRef.current && !langRef.current.contains(event.target as Node)) setShowLang(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
 
     return () => {
-      window.removeEventListener('storage', loadProfile);
+      window.removeEventListener('storage', handleSync);
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []);
+  }, [t]);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   const markAllAsRead = () => {
     setNotifications(notifications.map(n => ({ ...n, read: true })));
   };
 
+  const changeLanguage = (lng: string) => {
+    i18n.changeLanguage(lng);
+    setShowLang(false);
+    localStorage.setItem('i18nextLng', lng);
+  };
+
   return (
     <nav className="h-20 bg-white/80 backdrop-blur-md border-b border-gray-100 px-8 flex items-center justify-between sticky top-0 z-40 italic">
-      
       <div className="flex-1"></div>
 
       <div className="flex items-center gap-4">
         
-        {/* --- Language Switcher --- */}
+        {/* Language Switcher */}
         <div className="relative" ref={langRef}>
           <button 
             onClick={() => { setShowLang(!showLang); setShowNotif(false); }}
@@ -108,12 +136,8 @@ export default function Navbar() {
 
           <AnimatePresence>
             {showLang && (
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                className="absolute right-0 mt-2 w-40 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 p-1"
-              >
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+                className="absolute right-0 mt-2 w-40 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 p-1">
                 <button onClick={() => changeLanguage('en')} className={`w-full flex items-center justify-between px-4 py-3 text-[10px] font-black uppercase rounded-xl transition-colors ${i18n.language === 'en' ? 'bg-black text-white' : 'hover:bg-gray-50 text-gray-600'}`}>
                   English {i18n.language === 'en' && <Check size={12} />}
                 </button>
@@ -125,7 +149,7 @@ export default function Navbar() {
           </AnimatePresence>
         </div>
 
-        {/* --- Notification Section --- */}
+        {/* Notification Section */}
         <div className="relative" ref={notifRef}>
           <button 
             onClick={() => { setShowNotif(!showNotif); setShowLang(false); }}
@@ -133,7 +157,7 @@ export default function Navbar() {
           >
             <Bell size={20} />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white">
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-black flex items-center justify-center rounded-full border-2 border-white animate-bounce">
                 {unreadCount}
               </span>
             )}
@@ -141,27 +165,23 @@ export default function Navbar() {
 
           <AnimatePresence>
             {showNotif && (
-              <motion.div 
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="absolute right-0 mt-3 w-80 bg-white rounded-[30px] shadow-2xl border border-gray-100 overflow-hidden z-50"
-              >
+              <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                className="absolute right-0 mt-3 w-80 bg-white rounded-[30px] shadow-2xl border border-gray-100 overflow-hidden z-50">
                 <div className="p-5 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
-                  <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-900 italic">Notifications</h3>
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-900 italic">{t('notifications', 'ការជូនដំណឹង')}</h3>
                   <button onClick={markAllAsRead} className="text-[9px] font-black text-rose-500 uppercase hover:underline flex items-center gap-1">
                     <CheckCheck size={12} /> {t('mark_all_read', 'អានទាំងអស់')}
                   </button>
                 </div>
 
-                <div className="max-h-[350px] overflow-y-auto p-2">
+                <div className="max-h-[380px] overflow-y-auto p-2">
                   {notifications.length > 0 ? (
                     notifications.map((n) => (
-                      <div key={n.id} className={`p-4 mb-1 rounded-2xl flex gap-3 transition-colors cursor-pointer ${!n.read ? 'bg-gray-50' : 'opacity-60'}`}>
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${!n.read ? 'bg-black text-white' : 'bg-gray-100 text-gray-400'}`}>
-                          <Info size={16} />
+                      <div key={n.id} className={`p-4 mb-1 rounded-2xl flex gap-3 transition-colors cursor-pointer ${!n.read ? 'bg-zinc-50 border border-zinc-100' : 'opacity-60'}`}>
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${n.type === 'order' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                          {n.icon}
                         </div>
-                        <div className="text-left">
+                        <div className="text-left flex-1">
                           <p className="text-[10px] font-black text-gray-900 uppercase tracking-tighter italic">{n.title}</p>
                           <p className="text-[11px] text-gray-500 leading-tight mt-1 font-bold">{n.message}</p>
                           <p className="text-[8px] font-black text-gray-300 uppercase mt-2 tracking-widest">{n.time}</p>
@@ -169,7 +189,9 @@ export default function Navbar() {
                       </div>
                     ))
                   ) : (
-                    <div className="p-10 text-center text-gray-300 font-black uppercase text-[10px]">No new alerts</div>
+                    <div className="p-10 text-center text-gray-300 font-black uppercase text-[10px] italic">
+                      {t('no_alerts', 'មិនមានការជូនដំណឹងថ្មី')}
+                    </div>
                   )}
                 </div>
               </motion.div>
@@ -179,9 +201,9 @@ export default function Navbar() {
 
         <div className="h-8 w-[1px] bg-gray-100 mx-2"></div>
 
-        {/* --- User Profile Section --- */}
+        {/* User Profile Section */}
         <div className="flex items-center gap-4">
-          <div className="text-right hidden sm:block">
+          <div className="text-right hidden sm:block text-left">
             <p className="text-[12px] font-black text-gray-900 uppercase tracking-tighter leading-none italic">
               {userProfile.fullName}
             </p>

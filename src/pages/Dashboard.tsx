@@ -32,32 +32,48 @@ export default function Dashboard() {
 
   const loadDashboardData = () => {
     try {
-      const orders = JSON.parse(localStorage.getItem('zway_orders') || '[]');
+      // ១. ទាញទិន្នន័យពី LocalStorage
+      const activeOrders = JSON.parse(localStorage.getItem('zway_orders') || '[]');
+      const historyOrders = JSON.parse(localStorage.getItem('zway_orders_history') || '[]');
       const products = JSON.parse(localStorage.getItem('zway_products') || '[]');
-      const expenses = JSON.parse(localStorage.getItem('zway_expenses') || '[]');
+      const otherExpenses = JSON.parse(localStorage.getItem('zway_expenses') || '[]');
 
-      // ១. គណនាចំណូល
-      const revenue = orders.reduce((sum: number, order: any) => 
+      const allOrders = [...activeOrders, ...historyOrders];
+
+      // ២. គណនាចំណូលសរុប (Revenue) - មិនរាប់ Order ដែល Cancelled
+      const revenue = allOrders.reduce((sum: number, order: any) => 
         order.status !== 'Cancelled' ? sum + (parseFloat(order.total) || 0) : sum, 0);
 
-      const totalExp = expenses.reduce((sum: number, exp: any) => sum + (parseFloat(exp.amount) || 0), 0);
-      
-      const totalCostOfGoods = orders.reduce((sum: number, order: any) => {
+      // ៣. គណនាដើមទុនទំនិញដែលលក់ចេញ (Cost of Goods Sold)
+      const totalCOGS = allOrders.reduce((sum: number, order: any) => {
+        if (order.status === 'Cancelled') return sum;
+        
         const items = Array.isArray(order.items) ? order.items : [];
         const orderCost = items.reduce((iSum: number, item: any) => {
-          const p = products.find((prod: any) => prod.id === item.id);
-          return iSum + (parseFloat(p?.cost || 0) * (parseFloat(item.quantity) || 1));
+          // ស្វែងរកតម្លៃដើម (cost) ពីក្នុងបញ្ជីផលិតផលតាមរយៈ ID
+          const productInStock = products.find((p: any) => p.id === item.id);
+          const itemCost = parseFloat(productInStock?.cost || 0);
+          const itemQty = parseFloat(item.quantity || 0);
+          return iSum + (itemCost * itemQty);
         }, 0);
+        
         return sum + orderCost;
       }, 0);
 
-      const profit = revenue - (totalExp + totalCostOfGoods);
+      // ៤. គណនាចំណាយប្រតិបត្តិការ (Other Expenses)
+      const operatingExp = otherExpenses.reduce((sum: number, exp: any) => sum + (parseFloat(exp.amount) || 0), 0);
+      
+      // ៥. ចំណាយសរុប = ដើមទុនទំនិញ + ចំណាយផ្សេងៗ
+      const totalExpenses = totalCOGS + operatingExp;
 
-      // រៀបចំទិន្នន័យឆាត (Chart)
+      // ៦. ប្រាក់ចំណេញសុទ្ធ
+      const profit = revenue - totalExpenses;
+
+      // --- រៀបចំទិន្នន័យសម្រាប់ Chart ---
       const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
       const weeklyData = days.map(day => ({ name: day, sales: 0 }));
       
-      orders.forEach((order: any) => {
+      allOrders.forEach((order: any) => {
         if (order.date && order.status !== 'Cancelled') {
           const orderDate = new Date(order.date);
           const dayName = days[orderDate.getDay()];
@@ -67,13 +83,15 @@ export default function Dashboard() {
       });
       setChartData(weeklyData);
 
-      // រកទំនិញលក់ដាច់
+      // --- រៀបចំទំនិញលក់ដាច់បំផុត ---
       const productSalesMap: any = {};
-      orders.forEach((order: any) => {
-        const items = Array.isArray(order.items) ? order.items : [];
-        items.forEach((item: any) => {
-          productSalesMap[item.id] = (productSalesMap[item.id] || 0) + (parseFloat(item.quantity) || 1);
-        });
+      allOrders.forEach((order: any) => {
+        if (order.status !== 'Cancelled') {
+          const items = Array.isArray(order.items) ? order.items : [];
+          items.forEach((item: any) => {
+            productSalesMap[item.id] = (productSalesMap[item.id] || 0) + (parseFloat(item.quantity) || 0);
+          });
+        }
       });
 
       const sortedTopProducts = products
@@ -81,11 +99,12 @@ export default function Dashboard() {
         .sort((a: any, b: any) => b.soldCount - a.soldCount)
         .slice(0, 4);
 
+      // --- បញ្ចូលទិន្នន័យទៅក្នុង State ---
       setStats({
         totalRevenue: revenue,
-        totalExpenses: totalExp + totalCostOfGoods,
+        totalExpenses: totalExpenses,
         netProfit: profit,
-        totalOrders: orders.length,
+        totalOrders: allOrders.length,
         activeProducts: products.length
       });
       

@@ -20,15 +20,13 @@ export default function Customers() {
   const [customerOrders, setCustomerOrders] = useState<any[]>([]);
   const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
 
-  // ១. អនុគមន៍ទាញទិន្នន័យ (រួមបញ្ចូលទាំង Orders បច្ចុប្បន្ន និង History)
+  // ១. អនុគមន៍ទាញទិន្នន័យ
   const loadData = () => {
-    // ទាញទិន្នន័យពីគ្រប់ប្រភព
     const activeOrders = JSON.parse(localStorage.getItem('zway_orders') || '[]');
     const historyOrders = JSON.parse(localStorage.getItem('zway_orders_history') || '[]');
     const blocked = JSON.parse(localStorage.getItem('zway_blocked_users') || '[]');
     setBlockedUsers(blocked);
     
-    // បញ្ចូលទិន្នន័យទាំងពីរចូលគ្នាដើម្បីគណនាព័ត៌មានអតិថិជន
     const allOrders = [...activeOrders, ...historyOrders];
     
     const customerMap = allOrders.reduce((acc: any, order: any) => {
@@ -47,7 +45,6 @@ export default function Customers() {
       acc[name].totalOrders += 1;
       acc[name].totalSpent += parseFloat(order.total) || 0;
       
-      // រកមើលកាលបរិច្ឆេទចុងក្រោយដែលគាត់បានទិញ
       if (order.date && (acc[name].lastOrderDate === "N/A" || new Date(order.date) > new Date(acc[name].lastOrderDate))) {
           acc[name].lastOrderDate = order.date;
       }
@@ -68,8 +65,8 @@ export default function Customers() {
   const handleToggleBlock = (customerName: string) => {
     const isBlocked = blockedUsers.includes(customerName);
     const message = isBlocked 
-      ? `តើអ្នកចង់ដោះ Block អតិថិជន ${customerName} វិញមែនទេ?` 
-      : `តើអ្នកពិតជាចង់ Block អតិថិជន ${customerName} មែនទេ? គាត់នឹងមិនអាចបញ្ជាទិញបានទៀតឡើយ។`;
+      ? t('confirm_unblock', { name: customerName }) 
+      : t('confirm_block', { name: customerName });
 
     if (window.confirm(message)) {
       let updatedBlocked;
@@ -81,29 +78,21 @@ export default function Customers() {
       
       setBlockedUsers(updatedBlocked);
       localStorage.setItem('zway_blocked_users', JSON.stringify(updatedBlocked));
-      alert(isBlocked ? "បានដោះ Block រួចរាល់" : "បាន Block អតិថិជនរួចរាល់");
     }
   };
 
-  // ៣. មុខងារ Delete User (លុបទាំងក្នុង Active និង History)
+  // ៣. មុខងារ Delete User
   const handleDeleteCustomer = (customerName: string) => {
-    if (window.confirm(`⚠️ ប្រយ័ត្ន៖ តើអ្នកពិតជាចង់លុបអតិថិជន "${customerName}" មែនទេ? រាល់ប្រវត្តិបញ្ជាទិញទាំងអស់ (រួមទាំងក្នុង History) នឹងត្រូវលុបចោល!`)) {
-      // លុបពី Active Orders
+    if (window.confirm(t('confirm_delete_customer', { name: customerName }))) {
       const activeOrders = JSON.parse(localStorage.getItem('zway_orders') || '[]');
-      const updatedActive = activeOrders.filter((o: any) => o.customerName !== customerName);
-      localStorage.setItem('zway_orders', JSON.stringify(updatedActive));
+      localStorage.setItem('zway_orders', JSON.stringify(activeOrders.filter((o: any) => o.customerName !== customerName)));
       
-      // លុបពី History Orders
       const historyOrders = JSON.parse(localStorage.getItem('zway_orders_history') || '[]');
-      const updatedHistory = historyOrders.filter((o: any) => o.customerName !== customerName);
-      localStorage.setItem('zway_orders_history', JSON.stringify(updatedHistory));
+      localStorage.setItem('zway_orders_history', JSON.stringify(historyOrders.filter((o: any) => o.customerName !== customerName)));
       
-      // លុបឈ្មោះចេញពីបញ្ជី Block
-      const updatedBlocked = blockedUsers.filter(name => name !== customerName);
-      localStorage.setItem('zway_blocked_users', JSON.stringify(updatedBlocked));
+      localStorage.setItem('zway_blocked_users', JSON.stringify(blockedUsers.filter(name => name !== customerName)));
       
       loadData();
-      alert("បានលុបទិន្នន័យអតិថិជនចេញពីប្រព័ន្ធរួចរាល់");
     }
   };
 
@@ -130,20 +119,18 @@ export default function Customers() {
     const activeOrders = JSON.parse(localStorage.getItem('zway_orders') || '[]');
     const historyOrders = JSON.parse(localStorage.getItem('zway_orders_history') || '[]');
     
-    // បញ្ចូលគ្នាដើម្បីបង្ហាញក្នុង Modal
     const allHistory = [...activeOrders, ...historyOrders]
       .filter((o: any) => o.customerName === customerName)
       .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    const customerInfo = customers.find((c: any) => c.name === customerName);
+    setSelectedCustomer(customers.find((c: any) => c.name === customerName));
     setCustomerOrders(allHistory);
-    setSelectedCustomer(customerInfo);
   };
 
   return (
     <div className="flex min-h-screen bg-[#f8f9fa] text-gray-800 font-medium italic">
       <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 text-left">
         <Navbar />
 
         <motion.main 
@@ -151,15 +138,15 @@ export default function Customers() {
           className="p-6 md:p-10"
         >
           {/* Header Section */}
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-10 text-left">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-10">
             <div>
               <h1 className="text-4xl font-black text-gray-900 uppercase tracking-tighter leading-none mb-2 italic">
-                {t('customers_title', 'អតិថិជនសរុប')}
+                {t('customers_title')}
               </h1>
               <div className="flex items-center gap-2 text-gray-400">
                 <UserCheck size={16} />
                 <p className="text-[10px] font-bold uppercase tracking-widest">
-                  {t('customers_subtitle', 'រាយនាមអតិថិជន និងការចំណាយសរុប')} • {customers.length} Users
+                  {t('customers_subtitle')} • {customers.length} Users
                 </p>
               </div>
             </div>
@@ -169,38 +156,35 @@ export default function Customers() {
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                 <input 
                   type="text" 
-                  placeholder={t('placeholder_search_customer', 'ស្វែងរកឈ្មោះ...')}
+                  placeholder={t('placeholder_search_customer')}
                   className="w-full bg-white border-none rounded-2xl py-4 pl-12 pr-4 text-[10px] font-black uppercase tracking-widest outline-none focus:ring-4 focus:ring-black/5 transition-all shadow-sm"
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <button 
-                onClick={handleExportCSV}
-                className="p-4 bg-white text-black rounded-2xl hover:bg-black hover:text-white transition-all shadow-sm border border-gray-100 active:scale-95 group"
-              >
+              <button onClick={handleExportCSV} className="p-4 bg-white text-black rounded-2xl hover:bg-black hover:text-white transition-all shadow-sm border border-gray-100 active:scale-95 group">
                 <Download size={20} className="group-hover:-translate-y-1 transition-transform" />
               </button>
             </div>
           </div>
 
           {/* Table Container */}
-          <div className="bg-white rounded-[40px] shadow-sm border border-gray-100 overflow-hidden text-left">
+          <div className="bg-white rounded-[40px] shadow-sm border border-gray-100 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-gray-50/50 border-b border-gray-100">
-                    <th className="px-8 py-7 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{t('col_customer', 'អតិថិជន')}</th>
-                    <th className="px-6 py-7 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{t('col_contact', 'ព័ត៌មានទំនាក់ទំនង')}</th>
-                    <th className="px-6 py-7 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-center">{t('col_orders', 'ចំនួនទិញ')}</th>
-                    <th className="px-6 py-7 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{t('col_spent', 'ចំណាយសរុប')}</th>
-                    <th className="px-8 py-7 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-right">{t('col_action', 'សកម្មភាព')}</th>
+                    <th className="px-8 py-7 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{t('col_customer')}</th>
+                    <th className="px-6 py-7 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{t('col_contact')}</th>
+                    <th className="px-6 py-7 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-center">{t('col_orders')}</th>
+                    <th className="px-6 py-7 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{t('col_spent')}</th>
+                    <th className="px-8 py-7 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-right">{t('col_action')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {filteredCustomers.map((customer: any, idx) => {
                     const isBlocked = blockedUsers.includes(customer.name);
                     return (
-                      <tr key={idx} className={`group transition-all cursor-default ${isBlocked ? 'bg-rose-50/30 opacity-80' : 'hover:bg-zinc-50/50'}`}>
+                      <tr key={idx} className={`group transition-all ${isBlocked ? 'bg-rose-50/30 opacity-80' : 'hover:bg-zinc-50/50'}`}>
                         <td className="px-8 py-6">
                           <div className="flex items-center gap-4">
                             <div className="relative">
@@ -211,7 +195,7 @@ export default function Customers() {
                                 <span className={`font-black text-sm tracking-tight uppercase italic ${isBlocked ? 'text-rose-600 line-through' : 'text-gray-900'}`}>
                                     {customer.name}
                                 </span>
-                                {isBlocked && <span className="text-[8px] text-rose-500 font-black uppercase tracking-widest italic">Blocked Account</span>}
+                                {isBlocked && <span className="text-[8px] text-rose-500 font-black uppercase tracking-widest italic">{t('status_blocked_label')}</span>}
                             </div>
                           </div>
                         </td>
@@ -227,7 +211,7 @@ export default function Customers() {
                         </td>
                         <td className="px-6 py-6 text-center">
                           <span className="bg-zinc-100 text-zinc-900 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-zinc-200">
-                            {customer.totalOrders} {t('orders_unit', 'Orders')}
+                            {customer.totalOrders} {t('orders_unit')}
                           </span>
                         </td>
                         <td className="px-6 py-6">
@@ -237,23 +221,13 @@ export default function Customers() {
                         </td>
                         <td className="px-8 py-6">
                           <div className="flex items-center justify-end gap-2">
-                            <button 
-                              onClick={() => handleViewHistory(customer.name)}
-                              className="p-3 bg-black text-white rounded-xl hover:bg-zinc-800 transition-all shadow-lg active:scale-95"
-                              title="មើលប្រវត្តិ"
-                            >
+                            <button onClick={() => handleViewHistory(customer.name)} className="p-3 bg-black text-white rounded-xl hover:bg-zinc-800 transition-all shadow-lg active:scale-95">
                               <ShoppingBag size={14} />
                             </button>
-                            <button 
-                              onClick={() => handleToggleBlock(customer.name)}
-                              className={`p-3 rounded-xl transition-all active:scale-95 ${isBlocked ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-50 text-amber-500'}`}
-                            >
+                            <button onClick={() => handleToggleBlock(customer.name)} className={`p-3 rounded-xl transition-all active:scale-95 ${isBlocked ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-50 text-amber-500'}`}>
                               {isBlocked ? <UserPlus size={14} /> : <UserX size={14} />}
                             </button>
-                            <button 
-                              onClick={() => handleDeleteCustomer(customer.name)}
-                              className="p-3 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-600 hover:text-white transition-all active:scale-95"
-                            >
+                            <button onClick={() => handleDeleteCustomer(customer.name)} className="p-3 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-600 hover:text-white transition-all active:scale-95">
                               <Trash2 size={14} />
                             </button>
                           </div>
@@ -270,20 +244,17 @@ export default function Customers() {
         {/* Modal History */}
         <AnimatePresence>
           {selectedCustomer && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white w-full max-w-2xl rounded-[40px] overflow-hidden shadow-2xl border border-gray-100"
-              >
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm text-left">
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white w-full max-w-2xl rounded-[40px] overflow-hidden shadow-2xl border border-gray-100">
                 <div className="p-8 border-b border-gray-50 flex justify-between items-center bg-white">
-                  <div className="text-left">
+                  <div>
                     <h3 className="text-2xl font-black uppercase tracking-tighter italic text-gray-900">{selectedCustomer.name}</h3>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Full Purchase History (Active & Archived)</p>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">{t('history_modal_title')}</p>
                   </div>
                   <button onClick={() => setSelectedCustomer(null)} className="p-3 bg-gray-50 hover:bg-rose-50 hover:text-rose-500 rounded-2xl transition-all"><X size={20}/></button>
                 </div>
 
-                <div className="p-6 max-h-[500px] overflow-y-auto bg-gray-50/30 text-left">
+                <div className="p-6 max-h-[500px] overflow-y-auto bg-gray-50/30">
                   <div className="space-y-4">
                     {customerOrders.length > 0 ? customerOrders.map((order: any, i) => (
                       <div key={i} className="flex flex-col md:flex-row justify-between md:items-center p-6 bg-white rounded-[2rem] border border-gray-100 shadow-sm gap-4">
@@ -294,10 +265,9 @@ export default function Customers() {
                                 order.status === 'Delivered' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
                                 order.status === 'Cancelled' ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-amber-50 text-amber-600 border-amber-100'
                              }`}>
-                                {order.status}
+                                {t(`status_${order.status.toLowerCase()}`, order.status)}
                              </span>
-                             {/* បង្ហាញ Icon ប្រវត្តិ ប្រសិនបើវាជាទិន្នន័យ Archive */}
-                             {order.completedAt && <History size={12} className="text-gray-300" title="Archived Order" />}
+                             {order.completedAt && <History size={12} className="text-gray-300" />}
                           </div>
                           <div className="flex items-center gap-4 text-[9px] font-black text-gray-400 uppercase tracking-widest">
                              <span className="flex items-center gap-1.5"><Calendar size={12}/> {order.date}</span>
@@ -313,7 +283,7 @@ export default function Customers() {
                         </div>
                       </div>
                     )) : (
-                      <p className="text-center py-10 text-gray-400 font-bold uppercase tracking-widest text-xs italic">No orders found.</p>
+                      <p className="text-center py-10 text-gray-400 font-bold uppercase tracking-widest text-xs italic">{t('no_history_found')}</p>
                     )}
                   </div>
                 </div>
