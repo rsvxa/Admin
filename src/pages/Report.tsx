@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  BarChart3, Download, TrendingUp, 
-  AlertTriangle, DollarSign,
-  Users, ShoppingBag, HeartCrack, PieChart, ArrowUpRight
+  BarChart3, Download, TrendingUp, AlertTriangle, DollarSign,
+  Users, ShoppingBag, HeartCrack, PieChart, ArrowUpRight, X, FileText
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -16,106 +15,79 @@ import '../i18n/config';
 
 export default function Report() {
   const { t } = useTranslation();
-  const [stats, setStats] = useState({
-    totalRevenue: 0,
-    totalExpense: 0,
-    netProfit: 0,
-    staffSalary: 0,
-    restockExpense: 0,
-    damagedValue: 0,
-    lowStockCount: 0
-  });
-  
-  // កំណត់ខែបច្ចុប្បន្នជា Default (YYYY-MM)
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [showModal, setShowModal] = useState<string | null>(null);
+  const [rawItems, setRawItems] = useState<any>({ orders: [], expenses: [], damaged: [], lowStock: [] });
+  const [stats, setStats] = useState({
+    totalRevenue: 0, totalExpense: 0, netProfit: 0,
+    staffSalary: 0, restockExpense: 0, damagedValue: 0, lowStockCount: 0
+  });
+
+  const loadData = () => {
+    const orders = JSON.parse(localStorage.getItem('zway_orders') || '[]');
+    const products = JSON.parse(localStorage.getItem('zway_products') || '[]');
+    const damaged = JSON.parse(localStorage.getItem('zway_damaged_items') || '[]');
+    const expenses = JSON.parse(localStorage.getItem('zway_expenses') || '[]');
+
+    const fOrders = orders.filter((o: any) => (o.date || "").startsWith(selectedMonth));
+    const fExpenses = expenses.filter((e: any) => (e.date || "").startsWith(selectedMonth));
+    const fDamaged = damaged.filter((d: any) => (d.date || "").startsWith(selectedMonth));
+    const lowStock = products.filter((p: any) => p.stock <= 5);
+
+    const revenue = fOrders.reduce((sum: number, o: any) => sum + parseFloat(o.total || 0), 0);
+    const restock = fOrders.reduce((sum: number, o: any) => {
+      return sum + (o.items?.reduce((is: number, i: any) => {
+        const p = products.find((p: any) => p.id === i.id);
+        return is + (parseFloat(p?.cost || 0) * (i.quantity || 1));
+      }, 0) || 0);
+    }, 0);
+
+    const salary = fExpenses.filter((e: any) => e.category?.toLowerCase() === 'salary').reduce((sum: number, e: any) => sum + parseFloat(e.amount || 0), 0);
+    const otherExp = fExpenses.filter((e: any) => e.category?.toLowerCase() !== 'salary').reduce((sum: number, e: any) => sum + parseFloat(e.amount || 0), 0);
+    const damagedVal = fDamaged.reduce((sum: number, d: any) => sum + (parseFloat(d.cost || 0) * (d.quantity || 1)), 0);
+
+    const totalAllExpenses = restock + salary + otherExp + damagedVal;
+    
+    setRawItems({ orders: fOrders, expenses: fExpenses, damaged: fDamaged, lowStock });
+    setStats({
+      totalRevenue: revenue, totalExpense: totalAllExpenses, netProfit: revenue - totalAllExpenses,
+      staffSalary: salary, restockExpense: restock, damagedValue: damagedVal, lowStockCount: lowStock.length
+    });
+  };
 
   useEffect(() => {
-    const loadData = () => {
-      const orders = JSON.parse(localStorage.getItem('zway_orders') || '[]');
-      const products = JSON.parse(localStorage.getItem('zway_products') || '[]');
-      const damaged = JSON.parse(localStorage.getItem('zway_damaged_items') || '[]');
-      const expenses = JSON.parse(localStorage.getItem('zway_expenses') || '[]');
-
-      // ១. ចម្រោះទិន្នន័យតាមខែដែលបានជ្រើសរើស
-      const filteredOrders = orders.filter((o: any) => (o.date || "").startsWith(selectedMonth));
-      const filteredExpenses = expenses.filter((e: any) => (e.date || "").startsWith(selectedMonth));
-      const filteredDamaged = damaged.filter((d: any) => (d.date || "").startsWith(selectedMonth));
-
-      // ២. គណនាចំណូលសរុប (Revenue)
-      const revenue = filteredOrders.reduce((sum: number, o: any) => sum + parseFloat(o.total || 0), 0);
-
-      // ៣. គណនាថ្លៃដើមទំនិញដែលបានលក់ (COGS/Restock Expense)
-      // យើងទាញយក Cost ពី Product List មកគុណនឹងចំនួនដែលលក់ដាច់
-      const restock = filteredOrders.reduce((sum: number, o: any) => {
-        const orderCost = o.items?.reduce((itemSum: number, item: any) => {
-          const product = products.find((p: any) => p.id === item.id);
-          const unitCost = parseFloat(product?.cost || 0);
-          return itemSum + (unitCost * (item.quantity || 1));
-        }, 0) || 0;
-        return sum + orderCost;
-      }, 0);
-
-      // ៤. គណនាចំណាយផ្សេងៗ (Salary vs Others)
-      const salary = filteredExpenses
-        .filter((e: any) => e.category?.toLowerCase() === 'salary')
-        .reduce((sum: number, e: any) => sum + parseFloat(e.amount || 0), 0);
-      
-      const otherExp = filteredExpenses
-        .filter((e: any) => e.category?.toLowerCase() !== 'salary')
-        .reduce((sum: number, e: any) => sum + parseFloat(e.amount || 0), 0);
-
-      // ៥. គណនាតម្លៃទំនិញខូចខាត (Loss from Damaged Goods)
-      const damagedVal = filteredDamaged.reduce((sum: number, d: any) => {
-        const product = products.find((p: any) => p.id === d.productId);
-        const costPerUnit = parseFloat(product?.cost || d.cost || 0);
-        return sum + (costPerUnit * (d.quantity || 1));
-      }, 0);
-
-      // ៦. សរុបចំណាយ និងប្រាក់ចំណេញសុទ្ធ
-      const totalAllExpenses = restock + salary + otherExp + damagedVal;
-      const netProfit = revenue - totalAllExpenses;
-
-      setStats({
-        totalRevenue: revenue,
-        totalExpense: totalAllExpenses,
-        netProfit: netProfit,
-        staffSalary: salary,
-        restockExpense: restock,
-        damagedValue: damagedVal,
-        lowStockCount: products.filter((p: any) => p.stock <= 5).length
-      });
-    };
-
     loadData();
     window.addEventListener('storage', loadData);
     return () => window.removeEventListener('storage', loadData);
   }, [selectedMonth]);
 
-  const handleExportPDF = () => {
-    const doc = new jsPDF();
-    doc.setFontSize(18);
-    doc.text("ZWAY FASHION - FINANCIAL REPORT", 105, 20, { align: 'center' });
-    doc.setFontSize(10);
-    doc.text(`Report Period: ${selectedMonth}`, 105, 28, { align: 'center' });
-    
-    autoTable(doc, {
-      startY: 40,
-      head: [[t('description', 'Description'), t('amount', 'Amount')]],
-      body: [
-        [t('total_revenue', 'ចំណូលសរុប'), `$${stats.totalRevenue.toLocaleString()}`],
-        [t('restock_expense', 'ថ្លៃដើមទំនិញ (COGS)'), `-$${stats.restockExpense.toLocaleString()}`],
-        [t('staff_salary', 'ប្រាក់ខែបុគ្គលិក'), `-$${stats.staffSalary.toLocaleString()}`],
-        [t('damaged_goods', 'ទំនិញខូចខាត'), `-$${stats.damagedValue.toLocaleString()}`],
-        [t('total_expenses', 'ចំណាយសរុប'), `-$${stats.totalExpense.toLocaleString()}`],
-        [t('net_profit', 'ប្រាក់ចំណេញសុទ្ធ'), `$${stats.netProfit.toLocaleString()}`],
-      ],
-      theme: 'grid',
-      headStyles: { fillColor: [0, 0, 0], fontStyle: 'bold' },
-      foot: [[t('status', 'Status'), stats.netProfit >= 0 ? 'PROFITABLE' : 'LOSS']],
-      footStyles: { fillColor: stats.netProfit >= 0 ? [16, 185, 129] : [239, 68, 68] }
-    });
+  const exportCSV = (type: string, data: any[]) => {
+    const headers = ["Date", "Description", "Amount"];
+    const rows = data.map(item => [item.date || 'N/A', item.customerName || item.category || item.name, item.total || item.amount || 0]);
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `ZWAY_${type}_${selectedMonth}.csv`;
+    link.click();
+  };
 
-    doc.save(`ZWAY_Report_${selectedMonth}.pdf`);
+  const handleFullReportPDF = () => {
+    const doc = new jsPDF();
+    doc.text("ZWAY FASHION REPORT", 105, 20, { align: 'center' });
+    autoTable(doc, {
+      startY: 30,
+      head: [[t('reports.modal.name'), 'Amount']],
+      body: [
+        [t('reports.revenue'), `$${stats.totalRevenue}`],
+        [t('reports.cogs'), `-$${stats.restockExpense}`],
+        [t('reports.salary'), `-$${stats.staffSalary}`],
+        [t('reports.damaged'), `-$${stats.damagedValue}`],
+        [t('reports.profit'), `$${stats.netProfit}`],
+      ],
+      theme: 'striped'
+    });
+    doc.save(`Full_Report_${selectedMonth}.pdf`);
   };
 
   return (
@@ -123,150 +95,137 @@ export default function Report() {
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <Navbar />
-        <main className="p-6 md:p-10">
+        <main className="p-6 md:p-10 text-left">
           
-          {/* Header */}
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 gap-6">
-            <div className="text-left">
+            <div>
               <h1 className="text-4xl font-black text-gray-900 uppercase tracking-tighter italic leading-none">
-                {t('financial_report', 'របាយការណ៍ហិរញ្ញវត្ថុ')}
+                {t('reports.title')}
               </h1>
-              <div className="flex items-center gap-2 mt-2">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                <p className="text-gray-400 font-bold text-[10px] uppercase tracking-[0.2em] italic">
-                  {t('live_data_sync', 'ទិន្នន័យបច្ចុប្បន្នភាព')} • {selectedMonth}
-                </p>
-              </div>
+              <p className="text-gray-400 font-bold text-[10px] uppercase tracking-widest mt-2">
+                {t('reports.sync')} • {selectedMonth}
+              </p>
             </div>
-
-            <div className="flex items-center gap-3 bg-white p-2 px-4 rounded-[2rem] shadow-sm border border-gray-100 w-full lg:w-auto">
-              <input 
-                type="month" 
-                value={selectedMonth} 
-                className="text-xs font-black border-none outline-none bg-transparent cursor-pointer" 
-                onChange={(e) => setSelectedMonth(e.target.value)} 
-              />
-              <button 
-                onClick={handleExportPDF} 
-                className="bg-black text-white px-6 py-3 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-2 hover:bg-zinc-800 transition-all active:scale-95"
-              >
-                <Download size={14} /> {t('export_pdf', 'ទាញយក PDF')}
+            <div className="flex gap-3 bg-white p-2 px-4 rounded-[2rem] shadow-sm border border-gray-100">
+              <input type="month" value={selectedMonth} className="text-xs font-black border-none outline-none bg-transparent cursor-pointer" onChange={(e) => setSelectedMonth(e.target.value)} />
+              <button onClick={handleFullReportPDF} className="bg-black text-white px-6 py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2">
+                <Download size={14} /> {t('reports.export_pdf')}
               </button>
             </div>
           </div>
 
-          {/* Stats Cards */}
-          
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-            <StatCard icon={<DollarSign size={20}/>} label={t('net_profit', 'ចំណេញសុទ្ធ')} value={`$${stats.netProfit.toLocaleString()}`} color={stats.netProfit >= 0 ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-rose-50 text-rose-600 border-rose-100"} />
-            <StatCard icon={<ShoppingBag size={20}/>} label={t('restock_expense', 'ថ្លៃដើមទំនិញ')} value={`$${stats.restockExpense.toLocaleString()}`} color="bg-blue-50 text-blue-600 border-blue-100" />
-            <StatCard icon={<Users size={20}/>} label={t('staff_salary', 'ប្រាក់ខែបុគ្គលិក')} value={`$${stats.staffSalary.toLocaleString()}`} color="bg-purple-50 text-purple-600 border-purple-100" />
-            <StatCard icon={<HeartCrack size={20}/>} label={t('damaged_goods', 'ទំនិញខូចខាត')} value={`$${stats.damagedValue.toLocaleString()}`} color="bg-rose-50 text-rose-600 border-rose-100" />
-            <StatCard icon={<TrendingUp size={20}/>} label={t('total_revenue', 'ចំណូលលក់សរុប')} value={`$${stats.totalRevenue.toLocaleString()}`} color="bg-zinc-50 text-black border-zinc-800" />
-            <StatCard icon={<AlertTriangle size={20}/>} label={t('low_stock', 'ទំនិញជិតអស់')} value={stats.lowStockCount} color="bg-orange-50 text-orange-600 border-orange-100" />
+            <StatCard icon={<DollarSign/>} label={t('reports.profit')} value={`$${stats.netProfit}`} color="bg-emerald-50 text-emerald-600" onClick={() => setShowModal('profit')} />
+            <StatCard icon={<ShoppingBag/>} label={t('reports.cogs')} value={`$${stats.restockExpense}`} color="bg-blue-50 text-blue-600" onClick={() => setShowModal('orders')} />
+            <StatCard icon={<Users/>} label={t('reports.salary')} value={`$${stats.staffSalary}`} color="bg-purple-50 text-purple-600" onClick={() => setShowModal('expenses')} />
+            <StatCard icon={<HeartCrack/>} label={t('reports.damaged')} value={`$${stats.damagedValue}`} color="bg-rose-50 text-rose-600" onClick={() => setShowModal('damaged')} />
+            <StatCard icon={<TrendingUp/>} label={t('reports.revenue')} value={`$${stats.totalRevenue}`} color="bg-zinc-900 text-white" onClick={() => setShowModal('orders')} />
+            <StatCard icon={<AlertTriangle/>} label={t('reports.low_stock')} value={stats.lowStockCount} color="bg-orange-50 text-orange-600" onClick={() => setShowModal('lowStock')} />
           </div>
 
-          {/* Analysis Section */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 bg-white rounded-[3rem] shadow-sm border border-gray-100 p-10 text-left">
-               <div className="flex items-center justify-between mb-10">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-black rounded-2xl text-white">
-                      <BarChart3 size={20} />
-                    </div>
-                    <h3 className="font-black uppercase text-sm tracking-tighter italic">{t('profit_loss_analysis', 'វិភាគចំណេញ និងខាត')}</h3>
-                  </div>
-                  <ArrowUpRight className="text-gray-300" />
-               </div>
-               
-               <div className="space-y-6">
-                  <div className="group">
-                    <div className="flex justify-between mb-2">
-                      <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{t('revenue', 'ចំណូល')}</span>
-                      <span className="text-sm font-black text-emerald-600">+ ${stats.totalRevenue.toLocaleString()}</span>
-                    </div>
-                    <div className="h-4 bg-gray-50 rounded-full overflow-hidden border border-gray-100 p-1">
-                      <motion.div 
-                        initial={{ width: 0 }} animate={{ width: "100%" }}
-                        className="h-full bg-emerald-500 rounded-full"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="group">
-                    <div className="flex justify-between mb-2">
-                      <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{t('expenses', 'ចំណាយសរុប')}</span>
-                      <span className="text-sm font-black text-rose-600">- ${stats.totalExpense.toLocaleString()}</span>
-                    </div>
-                    <div className="h-4 bg-gray-50 rounded-full overflow-hidden border border-gray-100 p-1">
-                      <motion.div 
-                        initial={{ width: 0 }} 
-                        animate={{ width: `${(stats.totalExpense / (stats.totalRevenue || 1)) * 100}%` }}
-                        className="h-full bg-rose-500 rounded-full"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-center p-10 border-[4px] border-black rounded-[2.5rem] mt-12 bg-zinc-50/50">
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 mb-2">{t('net_profit_summary', 'ប្រាក់ចំណេញសុទ្ធចុងក្រោយ')}</p>
-                        <h2 className={`text-5xl font-black tracking-tighter italic ${stats.netProfit >= 0 ? 'text-black' : 'text-rose-600'}`}>
-                            ${stats.netProfit.toLocaleString()}
-                        </h2>
-                      </div>
-                      <div className="hidden md:block text-right">
-                         <div className={`inline-flex items-center gap-2 px-5 py-2 rounded-full border-2 font-black uppercase text-[10px] tracking-widest ${
-                           stats.netProfit >= 0 ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-rose-50 border-rose-100 text-rose-600'
-                         }`}>
-                           {stats.netProfit >= 0 ? t('healthy', 'អាជីវកម្មមានចំណេញ') : t('loss', 'កំពុងខាតបង់')}
-                         </div>
-                      </div>
-                  </div>
-               </div>
+            <div className="lg:col-span-2 bg-white rounded-[3rem] p-10 border border-gray-100">
+                <div className="flex justify-between items-center mb-10">
+                    <h3 className="font-black uppercase text-sm italic">{t('reports.analysis')}</h3>
+                    <BarChart3 className="text-gray-300" />
+                </div>
+                <div className="space-y-8">
+                   <ProgressItem label={t('reports.revenue')} val={stats.totalRevenue} total={stats.totalRevenue} color="bg-emerald-500" />
+                   <ProgressItem label={t('reports.salary')} val={stats.staffSalary} total={stats.totalRevenue} color="bg-purple-500" />
+                   <ProgressItem label={t('reports.cogs')} val={stats.restockExpense} total={stats.totalRevenue} color="bg-blue-500" />
+                </div>
             </div>
-
-            {/* Quick Insights */}
-            <div className="bg-black rounded-[3rem] p-10 text-white flex flex-col justify-between relative overflow-hidden">
-               <div className="relative z-10">
-                 <PieChart className="text-emerald-400 mb-6" size={32} />
-                 <h3 className="text-xl font-black uppercase italic tracking-tighter mb-4">{t('financial_insight', 'ការវាយតម្លៃ')}</h3>
-                 <p className="text-zinc-400 text-xs leading-relaxed font-bold uppercase tracking-wide">
-                   {stats.netProfit > 0 
-                     ? "ស្ថានភាពហិរញ្ញវត្ថុរបស់អ្នកមានភាពល្អប្រសើរ។ អ្នកអាចពិចារណាបន្ថែមស្តុក ឬវិនិយោគលើការផ្សព្វផ្សាយ។"
-                     : "ចំណាយលើសចំណូល! សូមពិនិត្យមើលថ្លៃដើមទំនិញ និងកាត់បន្ថយចំណាយមិនចាំបាច់។"}
-                 </p>
-               </div>
-               <div className="mt-10 relative z-10">
-                 <div className="p-6 bg-white/10 rounded-[2rem] border border-white/10 backdrop-blur-md">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1">{t('operating_margin', 'Margin')}</p>
-                    <p className="text-2xl font-black italic">
-                      {stats.totalRevenue > 0 ? ((stats.netProfit / stats.totalRevenue) * 100).toFixed(1) : 0}%
-                    </p>
-                 </div>
-               </div>
-               {/* Decorative Circle */}
-               <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl"></div>
+            <div className="bg-black rounded-[3rem] p-10 text-white relative overflow-hidden flex flex-col justify-between">
+                <PieChart size={32} className="text-emerald-400" />
+                <div>
+                   <h3 className="text-xl font-black uppercase italic mb-4">{t('reports.summary')}</h3>
+                   <p className="text-4xl font-black italic text-emerald-400">${stats.netProfit.toLocaleString()}</p>
+                </div>
+                <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-emerald-500/20 rounded-full blur-3xl"></div>
             </div>
           </div>
         </main>
+
+        {/* Modal Logic */}
+        <AnimatePresence>
+          {showModal && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white w-full max-w-3xl rounded-[3rem] overflow-hidden shadow-2xl">
+                <div className="p-8 border-b flex justify-between items-center">
+                  <h2 className="text-2xl font-black uppercase italic">{t('reports.details')}</h2>
+                  <button onClick={() => setShowModal(null)} className="p-2 bg-gray-100 rounded-full hover:bg-rose-100 transition-colors"><X/></button>
+                </div>
+                <div className="p-8 max-h-[400px] overflow-y-auto">
+                   <table className="w-full text-left">
+                      <thead>
+                        <tr className="text-[10px] font-black uppercase text-gray-400 border-b">
+                          <th className="pb-4">{t('reports.modal.date')}</th>
+                          <th className="pb-4">{t('reports.modal.name')}</th>
+                          <th className="pb-4 text-right">{t('reports.modal.amount')}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {renderModalTable(showModal, rawItems, t)}
+                      </tbody>
+                   </table>
+                </div>
+                <div className="p-8 bg-gray-50 flex justify-end">
+                   <button onClick={() => exportCSV(showModal, rawItems[showModal === 'orders' ? 'orders' : showModal] || [])} className="flex items-center gap-2 bg-black text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest">
+                     <FileText size={14}/> {t('reports.export_section')}
+                   </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
 }
 
-function StatCard({ icon, label, value, color }: any) {
+// Sub-components
+function StatCard({ icon, label, value, color, onClick }: any) {
   return (
-    <motion.div 
-      whileHover={{ y: -8, shadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)" }} 
-      className={`bg-white p-7 rounded-[2.5rem] border ${color.includes('border') ? color : 'border-gray-100'} shadow-sm flex items-center gap-6 transition-all`}
-    >
-      <div className={`w-16 h-16 ${color.split(' border')[0]} rounded-[1.5rem] flex items-center justify-center shadow-inner`}>
-        {icon}
-      </div>
-      <div className="text-left">
-        <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">{label}</p>
-        <h4 className="text-2xl font-black text-gray-900 tracking-tighter italic leading-none">{value}</h4>
+    <motion.div whileHover={{ y: -5 }} onClick={onClick} className={`cursor-pointer p-7 rounded-[2.5rem] border border-gray-100 bg-white shadow-sm flex items-center gap-5 transition-all`}>
+      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${color}`}>{icon}</div>
+      <div>
+        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{label}</p>
+        <h4 className="text-2xl font-black italic">{value}</h4>
       </div>
     </motion.div>
   );
+}
+
+function ProgressItem({ label, val, total, color }: any) {
+  const percent = total > 0 ? (val / total) * 100 : 0;
+  return (
+    <div>
+      <div className="flex justify-between text-[10px] font-black uppercase mb-2">
+        <span className="text-gray-400">{label}</span>
+        <span>${val.toLocaleString()}</span>
+      </div>
+      <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+        <motion.div initial={{ width: 0 }} animate={{ width: `${percent}%` }} className={`h-full ${color}`} />
+      </div>
+    </div>
+  );
+}
+
+function renderModalTable(type: string, data: any, t: any) {
+  let list = [];
+  if (type === 'orders') list = data.orders;
+  else if (type === 'expenses') list = data.expenses;
+  else if (type === 'damaged') list = data.damaged;
+  else if (type === 'lowStock') list = data.lowStock;
+  else if (type === 'profit') list = data.orders; // Simplified for demo
+
+  if (list.length === 0) return <tr><td colSpan={3} className="py-10 text-center text-gray-400 font-bold italic">{t('reports.modal.no_data')}</td></tr>;
+
+  return list.map((item: any, i: number) => (
+    <tr key={i} className="text-xs font-bold uppercase italic">
+      <td className="py-4">{item.date || 'N/A'}</td>
+      <td className="py-4">{item.customerName || item.category || item.name}</td>
+      <td className="py-4 text-right text-black font-black">${(item.total || item.amount || item.price || 0).toLocaleString()}</td>
+    </tr>
+  ));
 }

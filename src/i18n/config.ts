@@ -242,10 +242,184 @@ const resources = {
     'col_total_price': 'Total Price',
     'displaying': 'Product',
     'items' :'Instock.',
+    "col_orders": "Total Orders",
+    "orders_unit": "Orders",
+    "col_spent": "Total Spent",
+    'total_items': 'All Product',
+    "settings": {
+        "title": "Settings",
+        "subtitle": "Security & System Logs",
+        "status": {
+          "synced": "Synced to Master"
+        },
+        "tabs": {
+          "identity": "Identity",
+          "activity": "Activity Logs",
+          "security": "Security (2FA)",
+          "backup": "Secure Backup"
+        },
+        "activity": {
+          "title": "Login History",
+          "note": "Logs will be auto-deleted daily at 11:00 PM",
+          "auto_clear": "Auto-Clear Active",
+          "unknown_user": "Unknown User",
+          "authorized": "Authorized",
+          "no_logs": "No logs found. Records were cleared."
+        },
+        "profile": {
+          "joined": "Joined",
+          "id": "ID",
+          "full_name": "Full Name",
+          "master_email": "Master Email",
+          "phone": "Phone Number",
+          "shield": "Account Shield",
+          "authenticated": "Fully Authenticated",
+          "save_btn": "Save Master Changes"
+        },
+        "security": {
+          "title": "Two-Factor Auth",
+          "subtitle": "Extra layer of protection",
+          "enabled": "Enabled",
+          "disabled": "Disabled",
+          "backup_codes": "Your Backup Codes",
+          "warning": "* Use these codes if you lose access to your primary device. Each code can be used once.",
+          "refresh_btn": "Refresh Backup Codes",
+          "offline": "2FA is currently offline"
+        },
+        "backup": {
+          "title": "Encryption Vault",
+          "subtitle": "AES-256 Protected Backup",
+          "password_label": "Vault Password",
+          "export_label": "Export Vault",
+          "export_sub": "Secure .zway file",
+          "import_label": "Import Vault",
+          "import_sub": "Restore system"
+        },
+        "alerts": {
+          "2fa_enabled": "2FA Enabled!",
+          "set_password": "Please set a password!",
+          "enter_password": "Enter password:",
+          "invalid_password": "Invalid password!",
+          "code_copied": "Code copied!",
+          "new_codes": "New codes generated!"
+        },
+        "reports": {
+      "title": "Financial Report",
+      "sync": "Live Data Sync",
+      "export_pdf": "Export PDF",
+      "revenue": "Total Revenue",
+      "profit": "Net Profit",
+      "cogs": "Cost of Goods (COGS)",
+      "salary": "Staff Salary",
+      "damaged": "Damaged Loss",
+      "low_stock": "Low Stock Items",
+      "analysis": "Profit & Loss Analysis",
+      "summary": "Net Profit Summary",
+      "status_profit": "Profitable",
+      "status_loss": "Loss / Risk",
+      "details": "View Details",
+      "export_section": "Export Data",
+      "modal": {
+        "date": "Date",
+        "name": "Name/Category",
+        "amount": "Amount",
+        "qty": "Qty",
+        "no_data": "No records found for this period."
+      }},
+      },
+      'total_orders': 'Orders',
+      
     }
   },
   kh: {
     translation: {
+      "reports": {
+      "title": "របាយការណ៍ហិរញ្ញវត្ថុ",
+      "sync": "ទិន្នន័យបច្ចុប្បន្នភាព",
+      "export_pdf": "ទាញយក PDF",
+      "revenue": "ចំណូលលក់សរុប",
+      "profit": "ចំណេញសុទ្ធ",
+      "cogs": "ថ្លៃដើមទំនិញ",
+      "salary": "ប្រាក់ខែបុគ្គលិក",
+      "damaged": "ទំនិញខូចខាត",
+      "low_stock": "ទំនិញជិតអស់",
+      "analysis": "វិភាគចំណេញ និងខាត",
+      "summary": "ប្រាក់ចំណេញសុទ្ធចុងក្រោយ",
+      "status_profit": "អាជីវកម្មមានចំណេញ",
+      "status_loss": "កំពុងខាតបង់",
+      "details": "មើលលម្អិត",
+      "export_section": "ទាញយកទិន្នន័យ",
+      "modal": {
+        "date": "កាលបរិច្ឆេទ",
+        "name": "ឈ្មោះ/ប្រភេទ",
+        "amount": "ចំនួនទឹកប្រាក់",
+        "qty": "ចំនួន",
+        "no_data": "មិនមានទិន្នន័យក្នុងខែនេះទេ។"
+      }
+    },
+      'total_orders': 'ការបញ្ជាទិញ',
+      'total_items': 'ផលិតផលសរុប',
+      "orders_unit": "ដង",
+      "col_orders": "ចំនួនកម្ម៉ង់សរុប",
+      "col_spent": "ចំណាយសរុប",
+      "settings": {
+        "title": "ការកំណត់",
+        "subtitle": "សុវត្ថិភាព និង កំណត់ត្រាប្រព័ន្ធ",
+        "status": {
+          "synced": "បានធ្វើបច្ចុប្បន្នភាពទៅកាន់មេ"
+        },
+        "tabs": {
+          "identity": "អត្តសញ្ញាណ",
+          "activity": "កំណត់ត្រាសកម្មភាព",
+          "security": "សុវត្ថិភាព (2FA)",
+          "backup": "ការចម្លងទុកទិន្នន័យ"
+        },
+        "activity": {
+          "title": "ប្រវត្តិនៃការចូលប្រព័ន្ធ",
+          "note": "កំណត់ត្រានឹងត្រូវលុបដោយស្វ័យប្រវត្តិរៀងរាល់ម៉ោង ១១ យប់",
+          "auto_clear": "ប្រព័ន្ធលុបស្វ័យប្រវត្តិ",
+          "unknown_user": "អ្នកប្រើប្រាស់មិនស្គាល់",
+          "authorized": "ទទួលបានសិទ្ធិ",
+          "no_logs": "មិនមានកំណត់ត្រាត្រូវបានរកឃើញឡើយ។"
+        },
+        "profile": {
+          "joined": "បានចូលរួម",
+          "id": "អត្តសញ្ញាណប័ណ្ណ",
+          "full_name": "ឈ្មោះពេញ",
+          "master_email": "អ៊ីមែលមេ",
+          "phone": "លេខទូរស័ព្ទ",
+          "shield": "ការការពារគណនី",
+          "authenticated": "បានផ្ទៀងផ្ទាត់យ៉ាងពេញលេញ",
+          "save_btn": "រក្សាទុកការផ្លាស់ប្តូរ"
+        },
+        "security": {
+          "title": "ការផ្ទៀងផ្ទាត់ ២ ជាន់",
+          "subtitle": "ស្រទាប់បន្ថែមនៃការការពារ",
+          "enabled": "បើកដំណើរការ",
+          "disabled": "បិទដំណើរការ",
+          "backup_codes": "លេខកូដបម្រុងទុករបស់អ្នក",
+          "warning": "* ប្រើលេខកូដទាំងនេះ ប្រសិនបើអ្នកបាត់បង់ឧបករណ៍ចម្បង។ លេខកូដនីមួយៗប្រើបានតែម្តងប៉ុណ្ណោះ។",
+          "refresh_btn": "បង្កើតលេខកូដបម្រុងថ្មី",
+          "offline": "2FA ស្ថិតក្នុងស្ថានភាពបិទ"
+        },
+        "backup": {
+          "title": "ឃ្លាំងសម្ងាត់",
+          "subtitle": "ការការពារដោយ AES-256",
+          "password_label": "លេខសម្ងាត់តុដេក",
+          "export_label": "នាំចេញទិន្នន័យ",
+          "export_sub": "ឯកសារ .zway សុវត្ថិភាព",
+          "import_label": "នាំចូលទិន្នន័យ",
+          "import_sub": "ស្តារប្រព័ន្ធឡើងវិញ"
+        },
+        "alerts": {
+          "2fa_enabled": "បានបើកដំណើរការ 2FA!",
+          "set_password": "សូមកំណត់លេខសម្ងាត់!",
+          "enter_password": "បញ្ចូលលេខសម្ងាត់៖",
+          "invalid_password": "លេខសម្ងាត់មិនត្រឹមត្រូវ!",
+          "code_copied": "បានចម្លងលេខកូដ!",
+          "new_codes": "លេខកូដថ្មីត្រូវបានបង្កើត!"
+        }
+      },
       'items': 'មុខទំនិញ',
       'displaying': 'កំពុងបង្ហាញ',
       'col_total_price': 'តម្លៃសរុប',

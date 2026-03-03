@@ -272,7 +272,7 @@ export default function Products() {
               <div className="flex items-center gap-4 border-r border-white/10 pr-8">
                 <div className="p-3 bg-emerald-500/10 rounded-2xl text-emerald-400"><DollarSign size={20} /></div>
                 <div>
-                  <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">{t('total_value', 'តម្លៃស្តុកសរុប')}</p>
+                  <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">{t('col_total_price', 'តម្លៃសរុប')}</p>
                   <p className="text-xl font-black text-emerald-400 italic tracking-tighter">${displayTotalValue.toLocaleString()}</p>
                 </div>
               </div>

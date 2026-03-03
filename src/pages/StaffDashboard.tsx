@@ -26,7 +26,6 @@ export default function StaffDashboard() {
   const [userRole, setUserRole] = useState('');
   const [userEmail, setUserEmail] = useState('');
   
-  // រក្សាទុកឈ្មោះថ្ងៃជាភាសាអង់គ្លេសសម្រាប់ផ្ទៀងផ្ទាត់ Data (Logic)
   const todayNameEn = new Date().toLocaleDateString('en-US', { weekday: 'long' });
 
   useEffect(() => {

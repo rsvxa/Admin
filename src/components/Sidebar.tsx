@@ -88,7 +88,7 @@ export default function Sidebar() {
       icon: <Settings size={20} />, 
       label: t('menu_settings'), 
       path: '/settings', 
-      show: userRole === 'admin'
+      show: true
     },
   ];
 
